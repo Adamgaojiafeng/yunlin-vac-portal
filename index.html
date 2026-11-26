@@ -1,0 +1,1503 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>雲林縣榮服處｜補助與業務期程提醒登記</title>
+  <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script src="./config.js"></script>
+  <style>
+    :root {
+      --bg: #F6F3EC;
+      --surface: #FFFFFF;
+      --surface-soft: #FAF8F4;
+      --primary: #4F6757;
+      --primary-dark: #3B4F42;
+      --primary-light: #E9EFEA;
+      --teal: #0F766E;
+      --brown: #6B5B53;
+      --text: #222623;
+      --muted: #666D66;
+      --border: #E2DCD0;
+      --ok-bg: #E8F5E9;
+      --ok-text: #1B5E20;
+      --warn-bg: #FFF7E6;
+      --warn-border: #F5C26B;
+      --warn-text: #8A4B00;
+      --err-bg: #FEF2F2;
+      --err-border: #FCA5A5;
+      --err-text: #B91C1C;
+      --radius: 14px;
+      --shadow: 0 4px 16px rgba(55, 48, 38, 0.07);
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0;
+      font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 16px;
+      line-height: 1.55;
+      padding-bottom: 36px;
+    }
+
+    .hidden { display: none !important; }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, #2F4F3E 0%, #4F6757 100%);
+      color: #FFF;
+      padding: 18px 16px 16px;
+      box-shadow: 0 2px 10px rgba(32, 48, 38, 0.16);
+    }
+    .header-inner { max-width: 560px; margin: 0 auto; }
+    .header-tag {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 700;
+      background: rgba(255, 255, 255, 0.18);
+      padding: 2px 10px;
+      border-radius: 999px;
+      margin-bottom: 6px;
+    }
+    .header h1 { margin: 0; font-size: 20px; font-weight: 800; letter-spacing: 0.3px; }
+    .header p { margin: 4px 0 0; font-size: 13px; color: #E2EFE6; }
+
+    /* Container */
+    .container { max-width: 560px; margin: 14px auto 0; padding: 0 14px; }
+
+    /* User Bar */
+    .user-bar {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+      box-shadow: var(--shadow);
+    }
+    .user-avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      object-fit: cover;
+      background: var(--primary-light);
+      flex-shrink: 0;
+    }
+    .user-info { flex: 1; min-width: 0; }
+    .user-name { font-weight: 700; font-size: 15px; color: var(--primary-dark); }
+    .user-sub { font-size: 12px; color: var(--muted); }
+
+    /* Alert Banner */
+    .banner {
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-size: 13.5px;
+      margin-bottom: 12px;
+      border: 1px solid var(--border);
+    }
+    .banner-warn { background: var(--warn-bg); border-color: var(--warn-border); color: var(--warn-text); }
+    .banner-err { background: var(--err-bg); border-color: var(--err-border); color: var(--err-text); }
+    .banner-ok { background: var(--ok-bg); border-color: #B7DFB9; color: var(--ok-text); }
+
+    /* Top Tabs */
+    .tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 14px;
+      background: #E8E3D9;
+      padding: 4px;
+      border-radius: 12px;
+    }
+    .tab-btn {
+      border: none;
+      background: transparent;
+      color: var(--brown);
+      padding: 10px 8px;
+      border-radius: 9px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: 0.15s;
+    }
+    .tab-btn.active {
+      background: var(--surface);
+      color: var(--primary-dark);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    }
+
+    /* 6-Section Group Switcher */
+    .group-tabs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 7px;
+      margin-bottom: 16px;
+    }
+    .group-btn {
+      border: 1.5px solid var(--border);
+      background: var(--surface-soft);
+      color: var(--brown);
+      padding: 10px 6px;
+      border-radius: 10px;
+      font-size: 13.5px;
+      font-weight: 700;
+      line-height: 1.3;
+      cursor: pointer;
+      text-align: center;
+      transition: 0.15s;
+    }
+    .group-btn.active {
+      background: var(--primary);
+      color: #FFF;
+      border-color: var(--primary);
+      box-shadow: 0 2px 8px rgba(79, 103, 87, 0.22);
+    }
+
+    /* Card */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 16px;
+      box-shadow: var(--shadow);
+      margin-bottom: 14px;
+    }
+
+    /* Collapsible Official Schedule Panel */
+    .helper-details {
+      background: #F4F8F5;
+      border: 1.5px solid #C6DACD;
+      border-radius: 11px;
+      padding: 11px 13px;
+      margin-bottom: 16px;
+    }
+    .helper-details summary {
+      cursor: pointer;
+      font-weight: 800;
+      font-size: 14px;
+      color: var(--primary-dark);
+      list-style: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .helper-details summary::-webkit-details-marker { display: none; }
+    .helper-details summary .toggle-hint {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--teal);
+      white-space: nowrap;
+    }
+    .helper-details[open] summary { margin-bottom: 10px; }
+    .helper-details[open] summary .toggle-hint::before { content: "收合 ▴"; }
+    .helper-details:not([open]) summary .toggle-hint::before { content: "點擊展開 ▾"; }
+
+    /* Sub-panel */
+    .helper-panel {
+      background: #F4F8F5;
+      border: 1.5px solid #C6DACD;
+      border-radius: 11px;
+      padding: 12px 13px;
+      margin-bottom: 16px;
+    }
+    .helper-title {
+      font-weight: 800;
+      font-size: 13.5px;
+      color: var(--primary-dark);
+      margin-bottom: 8px;
+    }
+
+    /* Form */
+    .field { margin-bottom: 15px; }
+    .field label {
+      display: block;
+      font-weight: 700;
+      font-size: 14.5px;
+      color: var(--brown);
+      margin-bottom: 6px;
+    }
+    .req { color: #DC2626; margin-left: 3px; }
+    .opt-tag {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      margin-left: 4px;
+    }
+    .input, .select {
+      width: 100%;
+      padding: 11px 13px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      background: #FFF;
+      color: var(--text);
+      font-size: 16px;
+      font-family: inherit;
+      appearance: none;
+    }
+    .select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236B5B53' d='M6 8.5L1 3.5h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      padding-right: 36px;
+    }
+    .input:focus, .select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(79, 103, 87, 0.14);
+    }
+    .hint { font-size: 12.5px; color: var(--muted); margin-top: 5px; }
+
+    .date-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-bottom: 15px;
+    }
+    .date-grid .field { margin-bottom: 0; }
+
+    /* Preselected Tag */
+    .preselect-pill {
+      display: inline-block;
+      margin-top: 6px;
+      background: #E6F4F1;
+      color: var(--teal);
+      border: 1px solid #99F6E4;
+      border-radius: 10px;
+      padding: 5px 10px;
+      font-size: 12.5px;
+      font-weight: 700;
+      line-height: 1.45;
+    }
+
+    /* Preview & Stage Items */
+    .preview-box {
+      background: #F4F9F6;
+      border: 1.5px solid #C2D8CA;
+      border-radius: 12px;
+      padding: 13px 14px;
+      margin-bottom: 16px;
+    }
+    .preview-title {
+      font-weight: 800;
+      font-size: 14px;
+      color: var(--primary-dark);
+      margin-bottom: 8px;
+    }
+    .stage-item {
+      background: #FFF;
+      border: 1px solid #DCE7DF;
+      border-left: 4px solid var(--teal);
+      border-radius: 9px;
+      padding: 9px 11px;
+      margin-bottom: 8px;
+      font-size: 13.5px;
+    }
+    .stage-item:last-child { margin-bottom: 0; }
+    .stage-item.past { border-left-color: #9CA3AF; opacity: 0.72; }
+    .stage-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .stage-name { font-weight: 700; color: var(--text); flex: 1; }
+    .stage-meta { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11.5px;
+      font-weight: 700;
+      margin-right: 4px;
+    }
+    .badge-ok { background: var(--ok-bg); color: var(--ok-text); }
+    .badge-warn { background: var(--warn-bg); color: var(--warn-text); }
+    .badge-off { background: #ECEAE4; color: #6B7280; }
+    .badge-teal { background: #E6F4F1; color: var(--teal); }
+
+    /* Buttons */
+    .btn {
+      width: 100%;
+      padding: 13px 16px;
+      border-radius: 11px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      font-size: 16px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      text-decoration: none;
+    }
+    .btn-primary { background: var(--primary); color: #FFF; border-color: var(--primary); }
+    .btn-primary:active { background: var(--primary-dark); }
+    .btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
+    .btn-teal { background: #E6F4F1; color: var(--teal); border-color: #99F6E4; }
+    .btn-danger { background: var(--err-bg); color: var(--err-text); border-color: var(--err-border); }
+    .btn-sm { padding: 8px 12px; font-size: 13.5px; border-radius: 8px; }
+    .btn-xs { padding: 4px 9px; font-size: 12px; border-radius: 6px; width: auto; flex-shrink: 0; }
+    .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+
+    /* Record Case Card */
+    .case-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--primary);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 12px;
+      box-shadow: var(--shadow);
+    }
+    .case-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .case-title { font-weight: 800; font-size: 15.5px; color: var(--primary-dark); }
+    .case-sub { font-size: 12.5px; color: var(--muted); }
+    .case-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+    .reschedule-box {
+      background: #F4F8F5;
+      border: 1px solid #C6DACD;
+      border-radius: 10px;
+      padding: 11px 12px;
+      margin-top: 8px;
+    }
+    .reschedule-box label {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--primary-dark);
+      margin-bottom: 6px;
+    }
+
+    /* Loading Overlay */
+    #loadingMask {
+      position: fixed;
+      inset: 0;
+      z-index: 999;
+      background: rgba(246, 243, 236, 0.85);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .loading-card {
+      background: #FFF;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 22px 28px;
+      text-align: center;
+      box-shadow: var(--shadow);
+      min-width: 220px;
+    }
+    .spinner {
+      width: 34px;
+      height: 34px;
+      margin: 0 auto 10px;
+      border: 3.5px solid var(--primary-light);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Toast */
+    #toast {
+      position: fixed;
+      left: 50%;
+      bottom: 24px;
+      transform: translateX(-50%);
+      background: #2C362F;
+      color: #FFF;
+      padding: 10px 18px;
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 600;
+      z-index: 1000;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+      max-width: 90vw;
+      text-align: center;
+    }
+
+    .footer-note {
+      text-align: center;
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 16px;
+      padding: 0 12px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Loading -->
+  <div id="loadingMask">
+    <div class="loading-card">
+      <div class="spinner"></div>
+      <div id="loadingText" style="font-weight:700;color:var(--primary-dark);font-size:15px;">正在連線 LINE 服務...</div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="hidden"></div>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="header-tag">國軍退除役官兵輔導委員會</div>
+      <h1>雲林縣榮民服務處｜期程提醒登記</h1>
+      <p>登記後系統將於各階段自動推播 LINE 提醒，遇假日自動提前至前一個上班日通知</p>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- 系統錯誤提示 -->
+    <div id="fatalBox" class="banner banner-err hidden"></div>
+
+    <!-- 未加入官方帳號好友提示 -->
+    <div id="friendWarnBox" class="banner banner-warn hidden">
+      <div style="font-weight:700;margin-bottom:4px;">尚未加入本處官方帳號好友</div>
+      <div>請務必先將本處 LINE 官方帳號加入好友（且未封鎖），否則屆時系統將無法發送提醒通知。</div>
+      <a id="addFriendLink" href="#" target="_blank" class="btn btn-primary btn-sm hidden" style="margin-top:8px;">立即加入官方帳號好友</a>
+    </div>
+
+    <!-- 使用者歡迎條 -->
+    <div id="userBar" class="user-bar hidden">
+      <img id="userAvatar" class="user-avatar" alt="頭像">
+      <div class="user-info">
+        <div id="userDisplayName" class="user-name">讀取中...</div>
+        <div class="user-sub">已綁定此 LINE 帳號接收通知｜本頁不蒐集身分證號或電話</div>
+      </div>
+    </div>
+
+    <!-- 主內容 -->
+    <div id="mainContent" class="hidden">
+      <div class="tabs">
+        <button id="tabBtnForm" type="button" class="tab-btn active" onclick="switchView('form')">新增提醒登記</button>
+        <button id="tabBtnList" type="button" class="tab-btn" onclick="switchView('list')">我的提醒紀錄</button>
+      </div>
+
+      <!-- ===== View 1: 登記表單 ===== -->
+      <section id="viewForm">
+        <div id="formCard" class="card">
+          <!-- 網址自動帶入提示條 -->
+          <div id="prefillBanner" class="banner banner-ok hidden" style="margin-bottom:14px;"></div>
+
+          <!-- 6 大業務分區切換 -->
+          <div style="font-weight:700;font-size:13.5px;color:var(--brown);margin-bottom:8px;">步驟 1：選擇業務類別</div>
+          <div class="group-tabs">
+            <button type="button" class="group-btn active" data-group="榮民就業" onclick="selectGroup('榮民就業')">1. 榮民就業</button>
+            <button type="button" class="group-btn" data-group="二類就業" onclick="selectGroup('二類就業')">2. 二類就業</button>
+            <button type="button" class="group-btn" data-group="訓後就業" onclick="selectGroup('訓後就業')">3. 訓後就業</button>
+            <button type="button" class="group-btn" data-group="就學進修" onclick="selectGroup('就學進修')">4. 就學進修</button>
+            <button type="button" class="group-btn" data-group="就業考試" onclick="selectGroup('就業考試')">5. 就業考試</button>
+            <button type="button" class="group-btn" data-group="職業訓練" onclick="selectGroup('職業訓練')">6. 職業訓練</button>
+          </div>
+
+          <!-- 申請人姓名 -->
+          <div class="field">
+            <label for="applicantName">申請人姓名<span class="req">*</span></label>
+            <input id="applicantName" class="input" type="text" maxlength="30" placeholder="請輸入您的姓名（供提醒訊息稱呼使用）">
+          </div>
+
+          <!-- 申請種類 -->
+          <div class="field">
+            <label for="applyType">申請種類<span class="req">*</span></label>
+            <select id="applyType" class="select" onchange="onApplyTypeChange()">
+              <option value="">-- 請選擇申請種類 --</option>
+            </select>
+            <div id="preselectBadge" class="preselect-pill hidden"></div>
+            <div class="hint">系統將依所選業務，自動展開所有對應階段的提醒排程。</div>
+          </div>
+
+          <!-- 官方期程快速帶入（預設摺疊） -->
+          <details id="officialSchedulePanel" class="helper-details hidden">
+            <summary>
+              <span id="officialScheduleSummaryTitle">官方期程快速帶入（選填）</span>
+              <span class="toggle-hint"></span>
+            </summary>
+            <input id="officialSearchInput" class="input" type="text" style="margin-bottom:8px;padding:9px 11px;font-size:14.5px;" placeholder="輸入關鍵字篩選班隊或考試名稱..." oninput="renderOfficialScheduleOptions()">
+            <select id="officialScheduleSelect" class="select" onchange="onOfficialScheduleSelect()">
+              <option value="">-- 自行輸入日期（清單中無此班隊或考試） --</option>
+            </select>
+            <div id="officialDocLinkWrap" class="hint hidden">
+              <a id="officialDocLink" href="#" target="_blank" style="color:var(--teal);font-weight:700;">查看官方簡章／公告連結</a>
+            </div>
+            <div class="hint">僅退輔會自辦／委辦班隊及考試院期日表支援自動帶入，選擇後會自動填入下方日期與單位／學校／考試名稱；其餘課程請直接手動輸入。</div>
+          </details>
+
+          <!-- 正式學籍學期快選區 -->
+          <div id="semesterHelperPanel" class="helper-panel hidden">
+            <div class="helper-title">預計入學學期快選（自動帶入補助申請期間）</div>
+            <select id="semesterSelect" class="select" onchange="onSemesterSelect()">
+              <option value="">-- 請選擇預計申請之學期 --</option>
+            </select>
+            <div class="hint">國內正式學籍補助受理期間：第 1 學期為 9/1～10/15；第 2 學期為 2/1～3/15。</div>
+          </div>
+
+          <!-- 動態多基準日期區 -->
+          <div id="dynamicDateFields" class="date-grid hidden"></div>
+          <div id="dateHelpHint" class="hint hidden" style="margin-top:-8px;margin-bottom:15px;">
+            若已過報名階段或尚未到職，選填的日期欄位可先留空，系統會自動排入已填寫日期對應的提醒階段。
+          </div>
+
+          <!-- 動態備註欄位 -->
+          <div class="field">
+            <label for="caseNote" id="caseNoteLabel">入職單位（選填）</label>
+            <input id="caseNote" class="input" type="text" maxlength="80" placeholder="請輸入相關單位、班別或考試名稱">
+            <div id="noteExampleHint" class="hint">會顯示在提醒卡片中，方便您辨識不同案件。</div>
+          </div>
+
+          <!-- 即時預覽提醒排程 -->
+          <div id="previewBox" class="preview-box hidden">
+            <div class="preview-title">系統預計提醒時程預覽</div>
+            <div id="previewList"></div>
+          </div>
+
+          <button id="submitBtn" type="button" class="btn btn-primary" onclick="submitReminder()">同意接收提醒並送出登記</button>
+        </div>
+
+        <!-- 登記成功畫面 -->
+        <div id="successCard" class="card hidden">
+          <div class="banner banner-ok" style="margin-bottom:14px;">
+            <div style="font-weight:800;font-size:16px;margin-bottom:4px;">提醒登記已完成</div>
+            <div id="successMeta" style="font-size:13.5px;"></div>
+          </div>
+          <div class="preview-title">已排入的推播時程：</div>
+          <div id="successStages" style="margin-bottom:14px;"></div>
+          <div class="hint" style="margin-bottom:12px;">
+            提醒：各項補助資格與文件規範請以退輔會最新公告為準。日後若已辦妥、無意願繼續辦理，或會外職訓需調整延期，皆可至「我的提醒紀錄」隨時取消單階段／全案提醒或修改日期。
+          </div>
+          <div class="btn-row">
+            <button type="button" class="btn" onclick="resetForm()">再登記一筆</button>
+            <button type="button" class="btn btn-primary" onclick="closeLiffWindow()">完成並關閉</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== View 2: 我的提醒紀錄 ===== -->
+      <section id="viewList" class="hidden">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <span class="hint" style="margin:0;">可取消個別階段、整案提醒，或設定會外職訓延期</span>
+          <button type="button" class="btn btn-sm" style="width:auto;" onclick="loadMyRecords()">重新整理</button>
+        </div>
+        <div id="recordsContainer"></div>
+      </section>
+    </div>
+
+    <div class="footer-note">
+      雲林縣榮民服務處｜服務專線 05-5322742（週一至週五 08:00–17:00）
+    </div>
+  </main>
+
+<script>
+  // 自動讀取根目錄 config.js 設定，免重複填寫
+  const CONFIG = Object.assign({
+    LIFF_ID: '',
+    GAS_API_URL: '',
+    OA_ADD_FRIEND_URL: ''
+  }, window.APP_CONFIG || {});
+
+  // 6 大業務分區設定、動態欄位名稱與網址自動帶入參數（v6.1）
+  const SESSION_PARAM_KEY = 'PENDING_REMINDER_PARAMS_V61';
+
+  const VALID_GROUPS = ['榮民就業', '二類就業', '訓後就業', '就學進修', '就業考試', '職業訓練'];
+
+  const GROUP_NOTE_LABELS = {
+    '榮民就業': '入職單位（選填）',
+    '二類就業': '入職單位（選填）',
+    '訓後就業': '入職單位（選填）',
+    '就學進修': '就讀學校（選填）',
+    '就業考試': '考試名稱（選填）',
+    '職業訓練': '訓練單位／班名（選填）'
+  };
+
+  const TYPE_ALIASES = {
+    training:    '會外職訓補助（未申請）',
+    vtc:         '職訓中心自辦/委外課程',
+    education:   '就讀正式學籍（未就讀）',
+    credit:      '進修大專校院（學分班）',
+    exam:        '就業考試補助',
+    employment:  '榮民就業－已到職',
+    employment2: '二類就業－已到職',
+    posttrain:   '訓後就業'
+  };
+
+  const GROUP_ALIASES = {
+    '1': '榮民就業',
+    '2': '二類就業',
+    '3': '訓後就業',
+    '4': '就學進修',
+    '5': '就業考試',
+    '6': '職業訓練',
+    veteran:   '榮民就業',
+    class2:    '二類就業',
+    posttrain: '訓後就業',
+    study:     '就學進修',
+    exam:      '就業考試',
+    training:  '職業訓練'
+  };
+
+  const app = {
+    userId: '',
+    displayName: '',
+    idToken: '',
+    types: [],
+    officialSchedules: [],
+    activeGroup: '榮民就業',
+    selectedScheduleId: '',
+    selectedIsFullTime: false,
+    autoFilledNote: '',
+    previewReqSeq: 0
+  };
+
+  function extractParamsFromSearch(searchStr) {
+    const sp = new URLSearchParams(searchStr || '');
+    return {
+      type:      (sp.get('type') || '').trim(),
+      group:     (sp.get('group') || '').trim(),
+      name:      (sp.get('name') || '').trim(),
+      note:      (sp.get('note') || sp.get('course') || sp.get('className') || '').trim(),
+      regStart:  (sp.get('regStart') || '').trim(),
+      regEnd:    (sp.get('regEnd') || '').trim(),
+      startDate: (sp.get('startDate') || '').trim(),
+      endDate:   (sp.get('endDate') || '').trim(),
+      ft:        (sp.get('ft') || '').trim()
+    };
+  }
+
+  function hasAnyParam(obj) {
+    if (!obj) return false;
+    return !!(obj.type || obj.group || obj.name || obj.note || obj.regStart || obj.regEnd || obj.startDate || obj.endDate);
+  }
+
+  function readInitialParams() {
+    let p = extractParamsFromSearch(window.location.search);
+
+    if (!hasAnyParam(p)) {
+      const topSp = new URLSearchParams(window.location.search);
+      let stateStr = topSp.get('liff.state') || '';
+      if (stateStr) {
+        try {
+          if (/^%(2F|3F)/i.test(stateStr)) stateStr = decodeURIComponent(stateStr);
+          const qIdx = stateStr.indexOf('?');
+          p = extractParamsFromSearch(qIdx !== -1 ? stateStr.slice(qIdx) : stateStr);
+        } catch (e) {}
+      }
+    }
+
+    if (!hasAnyParam(p)) {
+      try {
+        const saved = sessionStorage.getItem(SESSION_PARAM_KEY);
+        if (saved) p = JSON.parse(saved) || p;
+      } catch (e) {}
+    }
+    return p;
+  }
+
+  function cacheInitialParams() {
+    const p = readInitialParams();
+    if (hasAnyParam(p)) {
+      try { sessionStorage.setItem(SESSION_PARAM_KEY, JSON.stringify(p)); } catch (e) {}
+    }
+  }
+
+  function applyPreselectedParams() {
+    const p = readInitialParams();
+    try { sessionStorage.removeItem(SESSION_PARAM_KEY); } catch (e) {}
+    if (!app.types.length) return;
+
+    let selectedTypeName = '';
+
+    if (p.type) {
+      const aliasTarget = TYPE_ALIASES[p.type.toLowerCase()] || p.type;
+      const matched = app.types.find(function (t) { return t.applyType === aliasTarget; }) ||
+        app.types.find(function (t) { return t.applyType.indexOf(aliasTarget) !== -1; });
+
+      if (matched) {
+        selectGroup(matched.liffGroup, true);
+        const sel = document.getElementById('applyType');
+        sel.value = matched.applyType;
+        onApplyTypeChange();
+        selectedTypeName = matched.applyType;
+      } else {
+        selectGroup(app.activeGroup, false);
+      }
+    } else if (p.group) {
+      const targetGroup = GROUP_ALIASES[p.group.toLowerCase()] || p.group;
+      const foundGrp = VALID_GROUPS.find(function (g) { return g === targetGroup || g.indexOf(targetGroup) !== -1; });
+      selectGroup(foundGrp || app.activeGroup, false);
+    } else {
+      selectGroup(app.activeGroup, false);
+    }
+
+    const prefilledSummary = [];
+    if (p.name) {
+      document.getElementById('applicantName').value = p.name.slice(0, 30);
+      prefilledSummary.push('姓名：' + p.name.slice(0, 30));
+    }
+    if (p.note) {
+      document.getElementById('caseNote').value = p.note.slice(0, 80);
+      app.autoFilledNote = '';
+      prefilledSummary.push('班別／備註：' + p.note.slice(0, 80));
+    }
+    if (p.ft === '1' || p.ft === 'true' || p.ft === '是') {
+      app.selectedIsFullTime = true;
+    }
+
+    let dateFilled = false;
+    ['regStart', 'regEnd', 'startDate', 'endDate'].forEach(function (k) {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(p[k] || '')) {
+        if (setDateInputIfExists(k, p[k])) dateFilled = true;
+      }
+    });
+
+    const curType = document.getElementById('applyType').value;
+    if (!dateFilled && p.note && curType) {
+      const candidates = getOfficialSchedulesForType(curType).filter(function (s) {
+        return s.name && (p.note.indexOf(s.name) !== -1 || s.name.indexOf(p.note) !== -1);
+      });
+      if (candidates.length === 1) {
+        const sch = candidates[0];
+        app.selectedScheduleId = sch.scheduleId;
+        app.selectedIsFullTime = sch.isFullTime === '是';
+        if (setDateInputIfExists('regStart', sch.regStart)) dateFilled = true;
+        if (setDateInputIfExists('regEnd', sch.regEnd)) dateFilled = true;
+        if (setDateInputIfExists('startDate', sch.startDate)) dateFilled = true;
+        if (setDateInputIfExists('endDate', sch.endDate)) dateFilled = true;
+        const offSel = document.getElementById('officialScheduleSelect');
+        if (offSel) offSel.value = sch.scheduleId;
+      }
+    }
+
+    if (selectedTypeName) {
+      const pill = document.getElementById('preselectBadge');
+      pill.textContent = '已依連結自動選取：' + selectedTypeName;
+      pill.classList.remove('hidden');
+    }
+
+    if (prefilledSummary.length > 0) {
+      const banner = document.getElementById('prefillBanner');
+      banner.innerHTML =
+        '<div style="font-weight:800;margin-bottom:2px;">已自動帶入您的登記資料</div>' +
+        '<div>' + escapeHtml(prefilledSummary.join(' ｜ ')) + '</div>' +
+        '<div style="font-size:12.5px;margin-top:3px;">請核對下方日期無誤後，點擊最下方「同意接收提醒並送出登記」即可完成設定。</div>';
+      banner.classList.remove('hidden');
+    }
+
+    if (dateFilled) {
+      triggerSchedulePreview();
+    }
+  }
+
+  // =========================================================
+  // 初始化流程
+  // =========================================================
+  window.addEventListener('DOMContentLoaded', initApp);
+
+  async function initApp() {
+    cacheInitialParams();
+
+    if (!CONFIG.LIFF_ID || !CONFIG.GAS_API_URL ||
+        CONFIG.GAS_API_URL.indexOf('script.google.com') === -1 ||
+        CONFIG.GAS_API_URL.indexOf('請貼上') !== -1) {
+      showFatal('尚未完成設定：請先確認 GitHub 根目錄的 config.js 已填入正確的 LIFF_ID 與 GAS_API_URL。');
+      return;
+    }
+
+    try {
+      setLoading(true, '正在驗證 LINE 登入狀態...');
+      await liff.init({ liffId: CONFIG.LIFF_ID });
+      cacheInitialParams();
+
+      if (!liff.isLoggedIn()) {
+        liff.login();
+        return;
+      }
+
+      const profile = await liff.getProfile();
+      app.userId = profile.userId || '';
+      app.displayName = profile.displayName || '';
+      app.idToken = liff.getIDToken() || '';
+
+      document.getElementById('userDisplayName').textContent = (app.displayName || 'LINE 使用者') + ' 您好';
+      if (profile.pictureUrl) {
+        document.getElementById('userAvatar').src = profile.pictureUrl;
+      } else {
+        document.getElementById('userAvatar').classList.add('hidden');
+      }
+      document.getElementById('userBar').classList.remove('hidden');
+
+      try {
+        const fs = await liff.getFriendship();
+        if (fs && fs.friendFlag === false) {
+          document.getElementById('friendWarnBox').classList.remove('hidden');
+          if (CONFIG.OA_ADD_FRIEND_URL) {
+            const lk = document.getElementById('addFriendLink');
+            lk.href = CONFIG.OA_ADD_FRIEND_URL;
+            lk.classList.remove('hidden');
+          }
+        }
+      } catch (e) {}
+
+      setLoading(true, '正在載入 6 大業務項目與官方期程...');
+      const typeRes = await callGasApi({ action: 'getTypes' });
+      if (!typeRes.ok) {
+        showFatal('載入申請種類失敗：' + (typeRes.message || '請稍後再試'));
+        return;
+      }
+
+      app.types = typeRes.types || [];
+      app.officialSchedules = typeRes.officialSchedules || [];
+      buildSemesterOptions();
+      applyPreselectedParams();
+
+      document.getElementById('mainContent').classList.remove('hidden');
+      setLoading(false);
+    } catch (err) {
+      showFatal('LIFF 初始化失敗：' + (err.message || err) + '。請確認已從 LINE 內開啟連結，且 Endpoint URL 設定正確。');
+    }
+  }
+
+  // =========================================================
+  // 與 GAS doPost 通訊
+  // =========================================================
+  async function callGasApi(payload) {
+    const body = Object.assign({
+      liffApi: true,
+      idToken: app.idToken,
+      userId: app.userId,
+      displayName: app.displayName
+    }, payload);
+
+    const res = await fetch(CONFIG.GAS_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(body)
+    });
+
+    if (!res.ok) throw new Error('伺服器回應異常（HTTP ' + res.status + '）');
+    return await res.json();
+  }
+
+  // =========================================================
+  // 6 大業務分區切換、動態備註名稱與多日期表單
+  // =========================================================
+  function updateNoteFieldLabel(groupName) {
+    const labelText = GROUP_NOTE_LABELS[groupName] || '案件備註（選填）';
+    document.getElementById('caseNoteLabel').textContent = labelText;
+  }
+
+  function selectGroup(groupName, skipAutoSelect) {
+    app.activeGroup = groupName;
+    document.querySelectorAll('.group-btn').forEach(function (btn) {
+      btn.classList.toggle('active', btn.getAttribute('data-group') === groupName);
+    });
+    updateNoteFieldLabel(groupName);
+    const scoped = renderTypeOptionsForActiveGroup();
+    clearDynamicSections();
+
+    if (!skipAutoSelect && scoped.length === 1) {
+      document.getElementById('applyType').value = scoped[0].applyType;
+      onApplyTypeChange();
+    }
+  }
+
+  function renderTypeOptionsForActiveGroup() {
+    const sel = document.getElementById('applyType');
+    const scoped = app.types.filter(function (t) { return t.liffGroup === app.activeGroup; });
+    sel.innerHTML = '<option value="">-- 請選擇申請種類 --</option>';
+    scoped.forEach(function (t) {
+      const opt = document.createElement('option');
+      opt.value = t.applyType;
+      const cntLabel = t.visibleStageCount > 0 ? ('（' + t.visibleStageCount + ' 階段提醒）') : '';
+      opt.textContent = t.applyType + cntLabel;
+      sel.appendChild(opt);
+    });
+    return scoped;
+  }
+
+  function clearDynamicSections() {
+    app.selectedScheduleId = '';
+    app.selectedIsFullTime = false;
+    document.getElementById('preselectBadge').classList.add('hidden');
+
+    const schPanel = document.getElementById('officialSchedulePanel');
+    schPanel.classList.add('hidden');
+    schPanel.removeAttribute('open');
+
+    document.getElementById('semesterHelperPanel').classList.add('hidden');
+    document.getElementById('dynamicDateFields').classList.add('hidden');
+    document.getElementById('dynamicDateFields').innerHTML = '';
+    document.getElementById('dateHelpHint').classList.add('hidden');
+    document.getElementById('previewBox').classList.add('hidden');
+    document.getElementById('previewList').innerHTML = '';
+
+    const noteEl = document.getElementById('caseNote');
+    if (noteEl.value.trim() && noteEl.value.trim() === app.autoFilledNote) {
+      noteEl.value = '';
+      app.autoFilledNote = '';
+    }
+    noteEl.placeholder = '請輸入' + (GROUP_NOTE_LABELS[app.activeGroup] || '備註').replace('（選填）', '');
+    document.getElementById('noteExampleHint').textContent = '會顯示在提醒卡片中，方便您辨識不同案件。';
+  }
+
+  function onApplyTypeChange() {
+    const typeVal = document.getElementById('applyType').value;
+    clearDynamicSections();
+    if (!typeVal) return;
+
+    const found = app.types.find(function (t) { return t.applyType === typeVal; });
+    if (!found) return;
+
+    updateNoteFieldLabel(found.liffGroup || app.activeGroup);
+
+    if (found.noteExample) {
+      document.getElementById('caseNote').placeholder = found.noteExample;
+      document.getElementById('noteExampleHint').textContent = '填寫範例：' + found.noteExample;
+    }
+
+    const matchingSch = getOfficialSchedulesForType(typeVal);
+    if (matchingSch.length > 0) {
+      document.getElementById('officialScheduleSummaryTitle').textContent =
+        '官方期程快速帶入（選填｜共 ' + matchingSch.length + ' 筆可選）';
+      document.getElementById('officialSearchInput').value = '';
+      document.getElementById('officialDocLinkWrap').classList.add('hidden');
+      renderOfficialScheduleOptions();
+      const schPanel = document.getElementById('officialSchedulePanel');
+      schPanel.removeAttribute('open');
+      schPanel.classList.remove('hidden');
+    }
+
+    if (typeVal.indexOf('正式學籍') !== -1) {
+      document.getElementById('semesterSelect').value = '';
+      document.getElementById('semesterHelperPanel').classList.remove('hidden');
+    }
+
+    const dateWrap = document.getElementById('dynamicDateFields');
+    const fields = found.dateFields || [{ key: 'startDate', label: '基準日期', optional: false }];
+    dateWrap.innerHTML = '';
+    fields.forEach(function (f) {
+      const div = document.createElement('div');
+      div.className = 'field';
+      const optBadge = f.optional
+        ? '<span class="opt-tag">（選填）</span>'
+        : '<span class="req">*</span>';
+      div.innerHTML =
+        '<label for="date_' + escapeHtml(f.key) + '">' + escapeHtml(f.label) + optBadge + '</label>' +
+        '<input id="date_' + escapeHtml(f.key) + '" class="input dyn-date-input" type="date" data-key="' + escapeHtml(f.key) + '" onchange="onDateInputChange()">';
+      dateWrap.appendChild(div);
+    });
+    dateWrap.classList.remove('hidden');
+
+    if (fields.length > 1) {
+      document.getElementById('dateHelpHint').classList.remove('hidden');
+    }
+  }
+
+  // =========================================================
+  // 官方期程清單帶入 & 正式學籍學期快選
+  // =========================================================
+  function getOfficialSchedulesForType(applyType) {
+    return (app.officialSchedules || []).filter(function (s) {
+      return s.applyType === applyType;
+    });
+  }
+
+  function renderOfficialScheduleOptions() {
+    const typeVal = document.getElementById('applyType').value;
+    const kw = (document.getElementById('officialSearchInput').value || '').trim().toLowerCase();
+    const sel = document.getElementById('officialScheduleSelect');
+    const prev = sel.value;
+
+    const list = getOfficialSchedulesForType(typeVal).filter(function (s) {
+      if (!kw) return true;
+      return (s.name + ' ' + s.sourceType).toLowerCase().indexOf(kw) !== -1;
+    });
+
+    sel.innerHTML = '<option value="">-- 自行輸入日期（清單中無此班隊或考試） --</option>';
+    list.forEach(function (s) {
+      const opt = document.createElement('option');
+      opt.value = s.scheduleId;
+      const dateTag = s.startDate ? ('｜' + s.startDate) : (s.regEnd ? ('｜報名迄 ' + s.regEnd) : '');
+      opt.textContent = s.name + dateTag;
+      sel.appendChild(opt);
+    });
+    if (prev && list.some(function (s) { return s.scheduleId === prev; })) sel.value = prev;
+  }
+
+  function onOfficialScheduleSelect() {
+    const schId = document.getElementById('officialScheduleSelect').value;
+    const docWrap = document.getElementById('officialDocLinkWrap');
+
+    if (!schId) {
+      app.selectedScheduleId = '';
+      app.selectedIsFullTime = false;
+      docWrap.classList.add('hidden');
+      return;
+    }
+
+    const found = (app.officialSchedules || []).find(function (s) { return s.scheduleId === schId; });
+    if (!found) return;
+
+    app.selectedScheduleId = found.scheduleId;
+    app.selectedIsFullTime = found.isFullTime === '是';
+
+    setDateInputIfExists('regStart', found.regStart);
+    setDateInputIfExists('regEnd', found.regEnd);
+    setDateInputIfExists('startDate', found.startDate);
+    setDateInputIfExists('endDate', found.endDate);
+
+    const noteEl = document.getElementById('caseNote');
+    const autoText = found.sourceType && found.sourceType.indexOf('職訓中心') !== -1 && found.name.indexOf('職訓中心') === -1
+      ? ('退輔會職訓中心－' + found.name)
+      : found.name;
+    noteEl.value = autoText;
+    app.autoFilledNote = autoText;
+
+    if (found.docUrl && /^https?:\/\//i.test(found.docUrl)) {
+      document.getElementById('officialDocLink').href = found.docUrl;
+      docWrap.classList.remove('hidden');
+    } else {
+      docWrap.classList.add('hidden');
+    }
+
+    showToast('已自動帶入「' + found.name + '」期程與名稱');
+    triggerSchedulePreview();
+  }
+
+  function buildSemesterOptions() {
+    const sel = document.getElementById('semesterSelect');
+    const nowYear = new Date().getFullYear();
+    const list = [];
+
+    for (let y = nowYear; y <= nowYear + 2; y++) {
+      const rocSecond = y - 1911 - 1;
+      list.push({
+        label: rocSecond + ' 學年第 2 學期（' + y + '/02/01 ～ ' + y + '/03/15）',
+        start: y + '-02-01',
+        end: y + '-03-15'
+      });
+      const rocFirst = y - 1911;
+      list.push({
+        label: rocFirst + ' 學年第 1 學期（' + y + '/09/01 ～ ' + y + '/10/15）',
+        start: y + '-09-01',
+        end: y + '-10-15'
+      });
+    }
+
+    sel.innerHTML = '<option value="">-- 請選擇預計申請之學期 --</option>';
+    list.forEach(function (item) {
+      const opt = document.createElement('option');
+      opt.value = item.start + '|' + item.end;
+      opt.textContent = item.label;
+      sel.appendChild(opt);
+    });
+  }
+
+  function onSemesterSelect() {
+    const val = document.getElementById('semesterSelect').value;
+    if (!val || val.indexOf('|') === -1) return;
+    const parts = val.split('|');
+    setDateInputIfExists('subsidyStart', parts[0]);
+    setDateInputIfExists('subsidyEnd', parts[1]);
+    triggerSchedulePreview();
+  }
+
+  function setDateInputIfExists(key, isoVal) {
+    const el = document.getElementById('date_' + key);
+    if (el && /^\d{4}-\d{2}-\d{2}$/.test(String(isoVal || '').trim())) {
+      el.value = String(isoVal).trim();
+      return true;
+    }
+    return false;
+  }
+
+  function collectInputDates() {
+    const dates = {};
+    document.querySelectorAll('.dyn-date-input').forEach(function (inp) {
+      const k = inp.getAttribute('data-key');
+      const v = String(inp.value || '').trim();
+      if (k && /^\d{4}-\d{2}-\d{2}$/.test(v)) dates[k] = v;
+    });
+    return dates;
+  }
+
+  function onDateInputChange() {
+    triggerSchedulePreview();
+  }
+
+  // =========================================================
+  // 即時試算多階段提醒時程預覽
+  // =========================================================
+  async function triggerSchedulePreview() {
+    const typeVal = document.getElementById('applyType').value;
+    const dates = collectInputDates();
+    const previewBox = document.getElementById('previewBox');
+    const previewList = document.getElementById('previewList');
+
+    if (!typeVal || !Object.keys(dates).length) {
+      previewBox.classList.add('hidden');
+      previewList.innerHTML = '';
+      return;
+    }
+
+    const reqId = ++app.previewReqSeq;
+    previewBox.classList.remove('hidden');
+    previewList.innerHTML = '<div class="hint" style="margin:0;">正在依國定假日表試算各階段提醒日期...</div>';
+
+    try {
+      const res = await callGasApi({
+        action: 'preview',
+        applyType: typeVal,
+        dates: dates,
+        isFullTime: app.selectedIsFullTime
+      });
+      if (reqId !== app.previewReqSeq) return;
+
+      if (!res.ok || !res.schedule || !res.schedule.length) {
+        previewList.innerHTML = '<div class="hint" style="margin:0;">目前填入的日期尚無對應排程，請繼續填寫其他日期欄位。</div>';
+        return;
+      }
+
+      previewList.innerHTML = res.schedule.map(function (st) {
+        const badges = [];
+        if (st.isPast) {
+          badges.push('<span class="badge badge-off">已過期（將自動略過）</span>');
+        } else {
+          badges.push('<span class="badge badge-ok">預計 ' + escapeHtml(st.remindDate) + ' ' + escapeHtml(st.sendHour) + ':00 通知</span>');
+        }
+        if (st.wasShifted) badges.push('<span class="badge badge-warn">遇假日提前</span>');
+        const deadlineText = (st.deadlineDate && st.deadlineDate !== st.baseDate)
+          ? ('｜截止日：<strong>' + escapeHtml(st.deadlineDate) + '</strong>')
+          : '';
+        return '<div class="stage-item' + (st.isPast ? ' past' : '') + '">' +
+          '<div class="stage-name">' + escapeHtml(st.stageName) + '</div>' +
+          '<div class="stage-meta">' + badges.join('') + deadlineText + '</div>' +
+        '</div>';
+      }).join('');
+    } catch (err) {
+      if (reqId !== app.previewReqSeq) return;
+      previewList.innerHTML = '<div class="hint" style="color:var(--err-text);">試算連線異常，送出時系統仍會自動精準計算。</div>';
+    }
+  }
+
+  // =========================================================
+  // 送出登記
+  // =========================================================
+  async function submitReminder() {
+    const applicantName = (document.getElementById('applicantName').value || '').trim();
+    const applyType = document.getElementById('applyType').value;
+    const caseNote = (document.getElementById('caseNote').value || '').trim();
+    const dates = collectInputDates();
+
+    if (!applicantName) { showToast('請填寫申請人姓名'); return; }
+    if (!applyType) { showToast('請選擇申請種類'); return; }
+    if (!Object.keys(dates).length) { showToast('請至少填寫一個日期'); return; }
+
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    setLoading(true, '正在寫入排程並計算各階段提醒日...');
+
+    try {
+      const res = await callGasApi({
+        action: 'submit',
+        applicantName: applicantName,
+        applyType: applyType,
+        caseNote: caseNote,
+        dates: dates,
+        scheduleId: app.selectedScheduleId,
+        isFullTime: app.selectedIsFullTime
+      });
+
+      setLoading(false);
+      btn.disabled = false;
+
+      if (!res.ok) {
+        showToast(res.message || '登記失敗，請稍後再試');
+        return;
+      }
+
+      const noteLabelClean = (GROUP_NOTE_LABELS[app.activeGroup] || '案件備註').replace('（選填）', '');
+      document.getElementById('successMeta').innerHTML =
+        '案件編號：<strong>' + escapeHtml(res.caseId) + '</strong><br>' +
+        '申請人：' + escapeHtml(res.applicantName) + '｜業務：' + escapeHtml(res.applyType) +
+        (caseNote ? ('<br>' + escapeHtml(noteLabelClean) + '：' + escapeHtml(caseNote)) : '');
+
+      const stages = res.stages || [];
+      document.getElementById('successStages').innerHTML = stages.length
+        ? stages.map(function (st) {
+            const isSkipped = st.status !== '待發送';
+            return '<div class="stage-item' + (isSkipped ? ' past' : '') + '">' +
+              '<div class="stage-name">' + escapeHtml(st.stageName) + '</div>' +
+              '<div class="stage-meta">' +
+                '<span class="badge ' + (isSkipped ? 'badge-off' : 'badge-ok') + '">' + escapeHtml(st.status) + '</span>' +
+                escapeHtml(st.remindDate) + ' ' + escapeHtml(st.sendHour) + ':00' +
+                (st.wasShifted ? ' <span class="badge badge-warn">遇假日提前</span>' : '') +
+              '</div>' +
+            '</div>';
+          }).join('')
+        : '<div class="hint">已成功建檔並排入系統提醒。</div>';
+
+      document.getElementById('formCard').classList.add('hidden');
+      document.getElementById('successCard').classList.remove('hidden');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (err) {
+      setLoading(false);
+      btn.disabled = false;
+      showToast('送出異常：' + (err.message || err));
+    }
+  }
+
+  function resetForm() {
+    document.getElementById('prefillBanner').classList.add('hidden');
+    document.getElementById('caseNote').value = '';
+    app.autoFilledNote = '';
+    selectGroup(app.activeGroup, false);
+    document.getElementById('successCard').classList.add('hidden');
+    document.getElementById('formCard').classList.remove('hidden');
+  }
+
+  function closeLiffWindow() {
+    if (typeof liff !== 'undefined' && liff.isInClient()) {
+      liff.closeWindow();
+    } else {
+      showToast('登記已完成，您可以關閉此分頁');
+    }
+  }
+
+  // =========================================================
+  // 頁籤切換與「我的提醒紀錄」
+  // =========================================================
+  function switchView(view) {
+    const isForm = view === 'form';
+    document.getElementById('tabBtnForm').classList.toggle('active', isForm);
+    document.getElementById('tabBtnList').classList.toggle('active', !isForm);
+    document.getElementById('viewForm').classList.toggle('hidden', !isForm);
+    document.getElementById('viewList').classList.toggle('hidden', isForm);
+    if (!isForm) loadMyRecords();
+  }
+
+  async function loadMyRecords() {
+    const wrap = document.getElementById('recordsContainer');
+    wrap.innerHTML = '<div class="card" style="text-align:center;color:var(--muted);">載入您的提醒紀錄中...</div>';
+
+    try {
+      const res = await callGasApi({ action: 'myRecords' });
+      if (!res.ok) {
+        wrap.innerHTML = '<div class="banner banner-err">' + escapeHtml(res.message || '讀取紀錄失敗') + '</div>';
+        return;
+      }
+
+      const records = res.records || [];
+      if (!records.length) {
+        wrap.innerHTML = '<div class="card" style="text-align:center;color:var(--muted);padding:28px 16px;">目前尚無進行中的提醒紀錄。<br>請點選上方「新增提醒登記」建立排程。</div>';
+        return;
+      }
+
+      const caseOrder = [];
+      const caseMap = {};
+      records.forEach(function (r) {
+        const cid = r.caseId || ('ROW_' + r.rowIndex);
+        if (!caseMap[cid]) {
+          caseOrder.push(cid);
+          caseMap[cid] = {
+            caseId: cid,
+            applicantName: r.applicantName,
+            applyType: r.applyType,
+            caseNote: r.caseNote,
+            baseDate: r.baseDate,
+            items: []
+          };
+        }
+        caseMap[cid].items.push(r);
+      });
+
+      wrap.innerHTML = '';
+      caseOrder.forEach(function (cid) {
+        const grp = caseMap[cid];
+        const hasPending = grp.items.some(function (it) { return it.status === '待發送'; });
+        const isExtTraining = String(grp.applyType || '').indexOf('會外職訓') !== -1;
+
+        const card = document.createElement('div');
+        card.className = 'case-card';
+
+        const head = document.createElement('div');
+        head.className = 'case-head';
+        head.innerHTML =
+          '<div>' +
+            '<div class="case-title">' + escapeHtml(grp.applyType) + '</div>' +
+            '<div class="case-sub">申請人：' + escapeHtml(grp.applicantName || '-') +
+              (grp.caseNote ? ('｜' + escapeHtml(grp.caseNote)) : '') + '</div>' +
+          '</div>' +
+          '<span class="badge badge-teal">' + escapeHtml(grp.caseId) + '</span>';
+        card.appendChild(head);
+
+        grp.items.forEach(function (it) {
+          const stDiv = document.createElement('div');
+          stDiv.className = 'stage-item';
+          stDiv.style.marginBottom = '6px';
+
+          const topRow = document.createElement('div');
+          topRow.className = 'stage-top';
+
+          const nameDiv = document.createElement('div');
+          nameDiv.className = 'stage-name';
+          nameDiv.textContent = it.stageName;
+          topRow.appendChild(nameDiv);
+
+          if (it.status === '待發送') {
+            const stCancelBtn = document.createElement('button');
+            stCancelBtn.type = 'button';
+            stCancelBtn.className = 'btn btn-danger btn-xs';
+            stCancelBtn.textContent = '取消此階段';
+            stCancelBtn.onclick = function () { cancelMyStage(grp.caseId, it.rowIndex, it.stageName); };
+            topRow.appendChild(stCancelBtn);
+          }
+
+          const cls = it.status === '已發送' ? 'badge-ok' : 'badge-warn';
+          const metaDiv = document.createElement('div');
+          metaDiv.className = 'stage-meta';
+          metaDiv.innerHTML =
+            '<span class="badge ' + cls + '">' + escapeHtml(it.status) + '</span>' +
+            escapeHtml(it.remindDate) + ' ' + escapeHtml(it.sendHour) + ':00' +
+            (it.deadlineDate && it.deadlineDate !== it.baseDate ? ('｜截止：' + escapeHtml(it.deadlineDate)) : '');
+
+          stDiv.appendChild(topRow);
+          stDiv.appendChild(metaDiv);
+          card.appendChild(stDiv);
+        });
+
+        if (hasPending) {
+          const actWrap = document.createElement('div');
+          actWrap.className = 'case-actions';
+
+          if (isExtTraining) {
+            const reschBoxId = 'resch_' + cid.replace(/[^a-zA-Z0-9_-]/g, '');
+            const dateInputId = 'reschDate_' + cid.replace(/[^a-zA-Z0-9_-]/g, '');
+            const isApproved = grp.applyType.indexOf('已審核') !== -1;
+            const datePromptLabel = isApproved ? '設定新的「結訓日期」（將自動重算核銷提醒日）' : '設定新的「預定開訓日期」（將自動重算備案提醒日）';
+
+            const openReschBtn = document.createElement('button');
+            openReschBtn.type = 'button';
+            openReschBtn.className = 'btn btn-teal btn-sm';
+            openReschBtn.textContent = '會外職訓延期／修改日期';
+            openReschBtn.onclick = function () {
+              const box = document.getElementById(reschBoxId);
+              if (box) box.classList.toggle('hidden');
+            };
+            actWrap.appendChild(openReschBtn);
+
+            const reschBox = document.createElement('div');
+            reschBox.id = reschBoxId;
+            reschBox.className = 'reschedule-box hidden';
+            reschBox.innerHTML =
+              '<label for="' + dateInputId + '">' + escapeHtml(datePromptLabel) + '</label>' +
+              '<input id="' + dateInputId + '" type="date" class="input" style="padding:9px 11px;margin-bottom:8px;" value="' + escapeHtml(grp.baseDate || '') + '">' +
+              '<button type="button" class="btn btn-primary btn-sm">確認延期並重算提醒日</button>';
+
+            reschBox.querySelector('button').onclick = function () {
+              const newVal = (document.getElementById(dateInputId).value || '').trim();
+              rescheduleMyExtTraining(grp.caseId, newVal);
+            };
+            actWrap.appendChild(reschBox);
+          }
+
+          const cancelAllBtn = document.createElement('button');
+          cancelAllBtn.type = 'button';
+          cancelAllBtn.className = 'btn btn-danger btn-sm';
+          cancelAllBtn.textContent = '已辦妥或無需再提醒（取消本案全部後續通知）';
+          cancelAllBtn.onclick = function () { cancelMyCase(grp.caseId); };
+          actWrap.appendChild(cancelAllBtn);
+
+          card.appendChild(actWrap);
+        }
+
+        wrap.appendChild(card);
+      });
+    } catch (err) {
+      wrap.innerHTML = '<div class="banner banner-err">讀取異常：' + escapeHtml(err.message || err) + '</div>';
+    }
+  }
+
+  async function cancelMyStage(caseId, rowIndex, stageName) {
+    if (!confirm('確定要取消「' + stageName + '」這一階段的提醒嗎？（其他階段仍會保留通知）')) return;
+    setLoading(true, '正在取消此階段提醒...');
+    try {
+      const res = await callGasApi({ action: 'cancelStage', caseId: caseId, rowIndex: rowIndex });
+      setLoading(false);
+      if (res.ok) { showToast('已取消「' + stageName + '」提醒'); loadMyRecords(); }
+      else showToast(res.message || '取消失敗');
+    } catch (err) { setLoading(false); showToast('取消異常：' + (err.message || err)); }
+  }
+
+  async function cancelMyCase(caseId) {
+    if (!confirm('確定要取消此案件（' + caseId + '）所有尚未發送的後續提醒嗎？')) return;
+    setLoading(true, '正在取消本案後續提醒...');
+    try {
+      const res = await callGasApi({ action: 'cancelCase', caseId: caseId });
+      setLoading(false);
+      if (res.ok) { showToast('已為您取消後續 ' + (res.canceledCount || 0) + ' 則提醒'); loadMyRecords(); }
+      else showToast(res.message || '取消失敗');
+    } catch (err) { setLoading(false); showToast('取消異常：' + (err.message || err)); }
+  }
+
+  async function rescheduleMyExtTraining(caseId, newDate) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(newDate)) { showToast('請選擇正確的新日期'); return; }
+    if (!confirm('確定要將此筆會外職訓案件延期至 ' + newDate + ' 並自動重算後續提醒日嗎？')) return;
+    setLoading(true, '正在依國定假日表重算延期後的提醒日...');
+    try {
+      const res = await callGasApi({ action: 'rescheduleCase', caseId: caseId, newDate: newDate });
+      setLoading(false);
+      if (res.ok) { showToast('已更新日期至 ' + res.newDate + '，重算 ' + (res.updatedCount || 0) + ' 個階段提醒'); loadMyRecords(); }
+      else showToast(res.message || '延期更新失敗');
+    } catch (err) { setLoading(false); showToast('延期異常：' + (err.message || err)); }
+  }
+
+  // =========================================================
+  // UI 輔助函式
+  // =========================================================
+  function setLoading(show, text) {
+    if (text) document.getElementById('loadingText').textContent = text;
+    document.getElementById('loadingMask').classList.toggle('hidden', !show);
+  }
+
+  function showFatal(msg) {
+    setLoading(false);
+    const box = document.getElementById('fatalBox');
+    box.textContent = msg;
+    box.classList.remove('hidden');
+  }
+
+  let toastTimer = null;
+  function showToast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.remove('hidden');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.classList.add('hidden'); }, 3000);
+  }
+
+  function escapeHtml(str) {
+    return String(str || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+</script>
+</body>
+</html>
