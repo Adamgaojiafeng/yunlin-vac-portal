@@ -1,8 +1,1898 @@
-<!-- =====【admin/index.html 後半段 2/2 開始】===== -->
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>雲林縣榮服處｜線上服務工作台</title>
+  <script src="../config.js"></script>
+  <script src="../api-bridge.js"></script>
+  <style>
+    :root {
+      --bg: #F6F7F8;
+      --surface: #FFFFFF;
+      --surface-soft: #FAFAFA;
+      --primary: #FF6B6B;
+      --primary-dark: #E85555;
+      --primary-light: #FFF1F1;
+      --primary-border: #FFD4D4;
+      --cyan: #38D9E3;
+      --cyan-dark: #0E8F98;
+      --cyan-light: #ECFAFB;
+      --charcoal: #2F3235;
+      --text: #33363A;
+      --muted: #7A8087;
+      --border: #EAECEF;
+      --day-bg: #FFF9EB;
+      --day-border: #F2D388;
+      --day-text: #8F5B00;
+      --ok-bg: #ECF9F0;
+      --ok-text: #1F7A3E;
+      --warn-bg: #FFF6E5;
+      --warn-text: #A05A00;
+      --err-bg: #FFF0F0;
+      --err-text: #C93535;
+      --radius: 14px;
+      --shadow: 0 6px 24px rgba(30, 35, 42, 0.05);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      font-size: 15px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button, input, select, textarea { font-family: inherit; font-size: 14px; }
+    .hidden { display: none !important; }
+
+     
+    #loadingMask {
+      position: fixed; inset: 0; z-index: 9999;
+      background: rgba(255, 255, 255, 0.82);
+      backdrop-filter: blur(3px);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .loading-box {
+      background: var(--surface); border: 1px solid var(--border);
+      padding: 22px 32px; border-radius: 18px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08); text-align: center; min-width: 240px;
+    }
+    .spinner {
+      width: 30px; height: 30px; margin: 0 auto 12px;
+      border: 2.5px solid var(--primary-light);
+      border-top-color: var(--primary);
+      border-radius: 50%; animation: spin 0.75s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #toastBox {
+      position: fixed; bottom: 24px; right: 24px; z-index: 10000;
+      display: flex; flex-direction: column; gap: 8px; max-width: 380px;
+    }
+    .toast {
+      background: var(--charcoal); color: #FFF; padding: 11px 18px;
+      border-radius: 999px; box-shadow: 0 8px 24px rgba(0,0,0,0.16);
+      font-size: 13.5px; animation: fadeIn 0.2s ease;
+    }
+    .toast.err { background: #C93535; }
+    .toast.ok { background: #2D3436; border-left: 4px solid var(--cyan); }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+     
+    #loginView {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      padding: 24px; position: relative; overflow: hidden; background: #F7F8F9;
+    }
+    .login-bg-coral {
+      position: absolute; top: -180px; left: -120px; width: 72vw; max-width: 960px; height: 420px;
+      background: linear-gradient(130deg, #FF6B6B 0%, #FF7878 100%);
+      border-radius: 0 0 60% 40% / 0 0 85% 35%;
+      pointer-events: none; z-index: 0;
+    }
+    .login-bg-cyan {
+      position: absolute; bottom: -110px; right: -90px; width: 320px; height: 320px;
+      background: rgba(56, 217, 227, 0.38);
+      border-radius: 58% 42% 48% 52% / 44% 56% 44% 56%;
+      pointer-events: none; z-index: 0;
+    }
+    .login-card {
+      position: relative; z-index: 1;
+      width: 100%; max-width: 430px; background: var(--surface);
+      border: 1px solid rgba(234, 236, 239, 0.9); border-radius: 20px;
+      padding: 36px 32px; box-shadow: 0 18px 48px rgba(30, 35, 42, 0.08);
+    }
+    .login-emblem {
+      display: inline-block; background: var(--primary-light); color: var(--primary-dark);
+      padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600;
+      letter-spacing: 0.4px; margin-bottom: 12px;
+    }
+    .login-card h1 { margin: 0 0 6px; font-size: 22px; font-weight: 700; color: var(--charcoal); letter-spacing: 0.5px; }
+    .login-card p { margin: 0 0 24px; font-size: 13.5px; color: var(--muted); }
+
+     
+    .topbar {
+      background: linear-gradient(118deg, #FF6666 0%, #FF7575 72%, #FF8282 100%);
+      color: #FFF; padding: 14px 22px; position: sticky; top: 0; z-index: 100;
+      overflow: hidden; box-shadow: 0 4px 18px rgba(255, 102, 102, 0.22);
+    }
+    .topbar::before {
+      content: ""; position: absolute; right: -45px; bottom: -55px; width: 170px; height: 120px;
+      background: rgba(72, 235, 244, 0.32); border-radius: 60% 40% 50% 50%;
+      pointer-events: none;
+    }
+    .topbar::after {
+      content: ""; position: absolute; left: 22%; top: -45px; width: 420px; height: 130px;
+      border: 1px solid rgba(255, 255, 255, 0.22); border-radius: 50%;
+      pointer-events: none;
+    }
+    .topbar-inner {
+      position: relative; z-index: 1;
+      max-width: 1400px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+    }
+    .brand-title { font-size: 17px; font-weight: 700; letter-spacing: 0.6px; }
+    .brand-sub { font-size: 12px; opacity: 0.9; font-weight: 400; margin-top: 1px; }
+    .top-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .role-pill {
+      background: rgba(255, 255, 255, 0.2); padding: 4px 12px;
+      border-radius: 999px; font-size: 12px; font-weight: 600;
+    }
+    .owner-select-top {
+      background: rgba(255, 255, 255, 0.95); color: var(--charcoal);
+      border: none; border-radius: 999px;
+      padding: 6px 14px; font-size: 13px; font-weight: 600; cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+     
+    .nav-wrap { background: var(--surface); border-bottom: 1px solid var(--border); }
+    .nav-tabs {
+      max-width: 1400px; margin: 0 auto; padding: 0 18px;
+      display: flex; gap: 8px; overflow-x: auto; align-items: center;
+    }
+    .nav-btn {
+      border: none; background: transparent; color: var(--muted);
+      padding: 14px 16px; cursor: pointer; font-weight: 600; font-size: 14.5px;
+      border-bottom: 2.5px solid transparent; white-space: nowrap; transition: 0.18s;
+      letter-spacing: 0.3px;
+    }
+    .nav-btn:hover { color: var(--primary); }
+    .nav-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .nav-right-icons {
+      margin-left: auto; display: flex; align-items: center; gap: 2px; flex-shrink: 0;
+    }
+    .nav-btn-icon {
+      padding: 10px 11px; display: inline-flex; align-items: center; justify-content: center;
+      border-bottom: 2.5px solid transparent;
+    }
+    .nav-btn-icon svg { width: 19px; height: 19px; stroke: currentColor; fill: none; stroke-width: 1.8; }
+
+     
+    .sub-tabs {
+      display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 999px; padding: 6px; box-shadow: var(--shadow);
+    }
+    .sub-tab-btn {
+      border: none; background: transparent; color: var(--muted);
+      padding: 8px 18px; border-radius: 999px; cursor: pointer; font-weight: 600; font-size: 13.5px;
+      transition: 0.15s;
+    }
+    .sub-tab-btn:hover { color: var(--charcoal); background: #F5F6F7; }
+    .sub-tab-btn.active { background: var(--primary); color: #FFF; }
+
+     
+    .container { max-width: 1400px; margin: 20px auto 64px; padding: 0 18px; }
+    .split-2col {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+    @media (max-width: 1024px) {
+      .split-2col { grid-template-columns: 1fr; }
+    }
+
+     
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+      padding: 8px 15px; border-radius: 999px; border: 1px solid #DCDEE2;
+      background: var(--surface); color: var(--text); cursor: pointer;
+      font-weight: 600; transition: 0.16s; text-decoration: none; white-space: nowrap;
+    }
+    .btn:hover { background: #F5F6F8; border-color: #C8CCD2; }
+    .btn-primary { background: var(--primary); color: #FFF; border-color: var(--primary); }
+    .btn-primary:hover { background: var(--primary-dark); border-color: var(--primary-dark); }
+    .btn-dark { background: var(--charcoal); color: #FFF; border-color: var(--charcoal); }
+    .btn-dark:hover { background: #1E2022; }
+    .btn-cyan { background: var(--cyan-light); color: var(--cyan-dark); border-color: #B4ECF0; }
+    .btn-cyan:hover { background: #DCF6F8; }
+    .btn-soft { background: var(--primary-light); color: var(--primary-dark); border-color: var(--primary-border); }
+    .btn-soft:hover { background: #FFE4E4; }
+    .btn-danger { background: var(--err-bg); color: var(--err-text); border-color: #F7CACA; }
+    .btn-danger:hover { background: #FFE0E0; }
+    .btn-ghost { background: rgba(255,255,255,0.18); color: #FFF; border-color: rgba(255,255,255,0.38); }
+    .btn-ghost:hover { background: rgba(255,255,255,0.3); }
+    .btn-sm { padding: 6px 12px; font-size: 13px; }
+    .btn-xs { padding: 4px 10px; font-size: 12px; }
+
+     
+    .input, .select, .textarea {
+      width: 100%; padding: 9px 12px; border: 1px solid #DFE2E6;
+      border-radius: 10px; background: #FFF; color: var(--text); transition: 0.15s;
+    }
+    .input:focus, .select:focus, .textarea:focus {
+      outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.14);
+    }
+    .input-missing {
+      border-color: #F59E0B !important;
+      background: #FFFDF5 !important;
+    }
+    .textarea { resize: vertical; min-height: 84px; line-height: 1.6; }
+    .field-label { display: block; font-weight: 600; font-size: 13px; color: var(--charcoal); margin-bottom: 6px; }
+    .hint { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
+
+     
+    .panel {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 18px 20px; box-shadow: var(--shadow);
+      margin-bottom: 18px;
+    }
+    .panel-accent-top { border-top: 3px solid var(--primary); }
+    .panel-cyan-top { border-top: 3px solid var(--cyan); }
+    .panel-title {
+      margin: 0 0 4px; font-size: 16px; font-weight: 700; color: var(--charcoal); letter-spacing: 0.2px;
+    }
+    .toolbar {
+      display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .toolbar-group { display: flex; flex-wrap: wrap; gap: 7px; align-items: center; }
+
+     
+    .simple-guide {
+      background: var(--surface-soft); border: 1px solid var(--border);
+      border-radius: 11px; padding: 10px 14px; margin-bottom: 12px;
+    }
+    .simple-guide summary {
+      cursor: pointer; list-style: none; font-size: 13px; font-weight: 600; color: var(--charcoal);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .simple-guide summary::-webkit-details-marker { display: none; }
+
+     
+    .source-import-box {
+      background: #F4FDFE; border: 1px solid #C2EDF0;
+      border-radius: 12px; padding: 13px 15px; margin-bottom: 14px;
+    }
+
+     
+    .pill-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+    .cat-pill {
+      padding: 5px 13px; border-radius: 999px; border: 1px solid #E2E5E9;
+      background: var(--surface); color: var(--muted); cursor: pointer; font-size: 12.5px; font-weight: 600;
+      transition: 0.15s;
+    }
+    .cat-pill:hover { border-color: var(--primary); color: var(--primary); }
+    .cat-pill.active { background: var(--primary); color: #FFF; border-color: var(--primary); }
+    .cat-pill.mine-pill { border-color: var(--primary-border); background: var(--primary-light); color: var(--primary-dark); }
+    .cat-pill.mine-pill.active { background: var(--primary); color: #FFF; border-color: var(--primary); }
+
+    .badge {
+      display: inline-flex; align-items: center; gap: 3px;
+      padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap;
+    }
+    .badge-on { background: var(--ok-bg); color: var(--ok-text); }
+    .badge-day { background: var(--day-bg); color: var(--day-text); border: 1px solid var(--day-border); }
+    .badge-off { background: #F1F2F4; color: #7A8087; }
+    .badge-cat { background: var(--primary-light); color: var(--primary-dark); }
+    .badge-cyan { background: var(--cyan-light); color: var(--cyan-dark); }
+    .badge-dark { background: #F0F1F3; color: var(--charcoal); }
+    .badge-warn { background: var(--warn-bg); color: var(--warn-text); }
+    .badge-err { background: var(--err-bg); color: var(--err-text); }
+
+     
+    .faq-list { display: flex; flex-direction: column; gap: 11px; }
+    .faq-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px 16px;
+      transition: border-color 0.15s;
+    }
+    .faq-card:hover { border-color: #DCDFE4; }
+    .faq-card.is-day { background: #FFFDF9; border-left: 3.5px solid #F0B429; }
+    .faq-card.is-draft { border-left: 3.5px solid var(--cyan); }
+    .faq-card.is-rem { border-left: 3.5px solid var(--charcoal); }
+    .faq-card.is-manual { border-left: 3.5px solid var(--cyan); }
+    .faq-card.is-manual-due { background: #FFFCFC; border-left: 3.5px solid var(--primary); }
+    .faq-card.is-off { opacity: 0.62; }
+
+    .faq-head {
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; flex-wrap: wrap;
+    }
+    .faq-head-left { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; flex: 1; min-width: 180px; }
+    .kw-line { font-weight: 700; color: var(--charcoal); font-size: 14.5px; cursor: pointer; }
+    .kw-line.collapsed {
+      display: inline-block; max-width: 300px; white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis; vertical-align: middle;
+    }
+    .star-btn {
+      background: none; border: none; cursor: pointer; font-size: 16px; padding: 0 2px; line-height: 1;
+      color: #D2D5DA;
+    }
+    .star-btn.pinned { color: #F5A623; }
+
+    .msg-grid { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+    .msg-bubble {
+      background: var(--surface-soft); border: 1px solid var(--border);
+      border-radius: 10px; padding: 9px 12px;
+    }
+    .msg-bubble-head {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 5px;
+      font-size: 12px; color: var(--muted); font-weight: 600;
+    }
+    .msg-edit-area {
+      width: 100%; border: 1px solid transparent; background: transparent;
+      resize: vertical; font-size: 13.5px; color: var(--text); line-height: 1.58;
+      min-height: 52px; padding: 4px; border-radius: 6px;
+    }
+    .msg-edit-area:focus { outline: none; background: #FFF; border-color: var(--primary); }
+    .draft-q-box {
+      background: #F5F6F8; border-left: 3px solid var(--charcoal);
+      padding: 9px 13px; border-radius: 8px; font-size: 13px; margin-top: 10px;
+      white-space: pre-wrap; color: var(--charcoal);
+    }
+
+     
+    .stage-edit-card {
+      background: var(--surface-soft); border: 1px solid var(--border);
+      border-left: 3px solid var(--cyan); border-radius: 10px;
+      padding: 12px 14px; margin-bottom: 10px;
+    }
+    .stage-edit-head {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+
+     
+    .flex-preview-card {
+      background: #FBFDFE; border: 1px solid #D5EEF0; border-left: 3.5px solid var(--cyan);
+      border-radius: 10px; padding: 10px 13px; margin-top: 4px;
+    }
+    .flex-preview-title { font-weight: 700; color: var(--charcoal); font-size: 13.5px; margin-bottom: 4px; }
+    .flex-preview-desc { font-size: 12.5px; color: var(--muted); line-height: 1.55; }
+
+    .img-preview {
+      max-width: 240px; max-height: 200px; border-radius: 10px;
+      border: 1px solid var(--border); display: block; margin: 6px 0; cursor: pointer;
+      object-fit: contain; background: #FFF;
+    }
+    .qr-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .qr-chip {
+      font-size: 12px; padding: 2px 10px; border-radius: 999px;
+      background: #F5F6F8; color: var(--text); border: 1px solid #E2E5E9;
+    }
+    .tg-user-chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 5px 12px; border-radius: 999px; background: var(--cyan-light); color: var(--cyan-dark);
+      border: 1px solid #B4ECF0; font-size: 12px; font-weight: 600; cursor: pointer;
+    }
+
+     
+    .emoji-bar {
+      display: flex; flex-wrap: wrap; gap: 5px; align-items: center;
+      padding: 8px 10px; background: var(--surface-soft);
+      border: 1px solid var(--border); border-radius: 10px; margin-bottom: 12px;
+    }
+    .emoji-btn {
+      border: 1px solid var(--border); background: #FFF;
+      border-radius: 6px; padding: 3px 7px; cursor: pointer; font-size: 14px;
+    }
+    .emoji-btn:hover { border-color: var(--primary); background: var(--primary-light); }
+    .var-chip {
+      border: 1px solid var(--primary-border); background: var(--primary-light); color: var(--primary-dark);
+      border-radius: 999px; padding: 3px 10px; cursor: pointer; font-size: 12px; font-weight: 600;
+    }
+    .var-chip:hover { background: #FFE2E2; }
+
+     
+    .quota-bar-wrap {
+      width: 100%; height: 7px; background: #ECEEF0; border-radius: 999px;
+      overflow: hidden; margin-top: 8px;
+    }
+    .quota-bar-fill { height: 100%; background: var(--primary); border-radius: 999px; transition: width 0.3s ease; }
+    .quota-bar-fill.warn { background: #F59E0B; }
+    .quota-bar-fill.err { background: #DC2626; }
+
+     
+    .help-list {
+      margin: 6px 0 0; padding-left: 20px; font-size: 14px; color: var(--text); line-height: 1.8;
+    }
+    .help-list li { margin-bottom: 8px; }
+
+     
+    .modal-backdrop {
+      position: fixed; inset: 0; z-index: 1000;
+      background: rgba(34, 38, 42, 0.48);
+      display: flex; align-items: flex-start; justify-content: center;
+      overflow-y: auto; padding: 24px 12px;
+    }
+    .modal-card {
+      width: 100%; max-width: 860px; background: var(--surface);
+      border-radius: 16px; box-shadow: 0 18px 48px rgba(0,0,0,0.18);
+      overflow: hidden; margin: auto;
+    }
+    .modal-head {
+      background: var(--charcoal); color: #FFF; padding: 15px 22px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .modal-head h3 { margin: 0; font-size: 16px; font-weight: 600; }
+    .modal-body { padding: 20px 22px; max-height: 78vh; overflow-y: auto; }
+    .modal-foot {
+      padding: 13px 22px; background: var(--surface-soft);
+      border-top: 1px solid var(--border);
+      display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap;
+    }
+
+    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    @media (max-width: 720px) {
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+      .kw-line.collapsed { max-width: 220px; }
+    }
+
+    .slot-box {
+      border: 1px solid var(--border); border-radius: 12px;
+      padding: 13px; background: var(--surface-soft); margin-bottom: 12px;
+    }
+    .slot-top {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      flex-wrap: wrap; margin-bottom: 8px;
+    }
+    .slot-preview {
+      margin-top: 8px; padding: 8px 10px; border-radius: 8px;
+      background: #FFF; border: 1px solid var(--border); font-size: 12px;
+    }
+
+     
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    th, td {
+      padding: 10px 12px; border-bottom: 1px solid var(--border);
+      text-align: left; vertical-align: top;
+    }
+    th { background: #F9FAFB; color: var(--muted); font-weight: 600; font-size: 12.5px; white-space: nowrap; }
+
+     
+    .info-bar {
+      padding: 10px 14px; border-radius: 10px; font-size: 13px; margin-bottom: 12px;
+      border: 1px solid var(--border); background: var(--surface-soft);
+      display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+    }
+    .info-bar.ok { background: var(--ok-bg); border-color: #C7EBD3; color: var(--ok-text); }
+    .info-bar.warn { background: var(--warn-bg); border-color: #F8DFB4; color: var(--warn-text); }
+
+     
+    .switch-row {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-soft);
+    }
+    .stat-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-bottom: 16px;
+    }
+    .stat-card {
+      background: var(--surface-soft); border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px 16px;
+    }
+    .stat-label { font-size: 12px; color: var(--muted); }
+    .stat-val { font-size: 15.5px; font-weight: 700; margin-top: 4px; color: var(--charcoal); }
+  </style>
+</head>
+<body>
+
+  
+  <div id="loadingMask" class="hidden">
+    <div class="loading-box">
+      <div class="spinner"></div>
+      <div id="loadingText" style="font-weight:600;color:var(--charcoal);">處理中，請稍候...</div>
+    </div>
+  </div>
+
+  
+  <div id="toastBox"></div>
+
+  
+  <input type="file" id="hiddenImgInput" accept="image/*" class="hidden">
+  <input type="file" id="hiddenAudioInput" accept=".m4a,audio/mp4,audio/x-m4a,audio/*" class="hidden">
+  <input type="file" id="hiddenAiAudioInput" accept=".m4a,audio/mp4,audio/x-m4a,audio/*" class="hidden">
+  <input type="file" id="hiddenIcsInput" accept=".ics,text/calendar" class="hidden">
+  <input type="file" id="hiddenScheduleDocInput" accept=".pdf,image/*" class="hidden">
+
+  
+  <div id="loginView">
+    <div class="login-bg-coral"></div>
+    <div class="login-bg-cyan"></div>
+    <div class="login-card">
+      <div class="login-emblem">雲林縣榮民服務處</div>
+      <h1>線上服務工作台</h1>
+      <p>選擇您的負責業務並輸入密碼，系統會自動篩選出與您相關的回覆範本與提醒名單。</p>
+
+      <div style="margin-bottom:14px;">
+        <label class="field-label" for="loginOwnerProfile">負責業務</label>
+        <select id="loginOwnerProfile" class="select">
+          <option value="VETERAN_EMP">榮民就業 ＆ 訓後就業</option>
+          <option value="CLASS2_CPAS">二類就業 ＆ CPAS 職業適性評量</option>
+          <option value="TRAIN_EDU_EXAM">職業訓練、就學進修 ＆ 就業考試</option>
+          <option value="ALL">全部業務（職務代理／總覽）</option>
+        </select>
+      </div>
+
+      <div style="margin-bottom:14px;">
+        <label class="field-label" for="passcodeInput">通行密碼</label>
+        <input id="passcodeInput" type="password" class="input" placeholder="請輸入密碼" autocomplete="current-password">
+      </div>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);margin-bottom:20px;cursor:pointer;">
+        <input type="checkbox" id="rememberLogin" checked> 在這台電腦記住登入狀態（90 天）
+      </label>
+      <button class="btn btn-primary" style="width:100%;padding:11px;" onclick="doLogin()">登入系統</button>
+      <div id="loginError" class="hint" style="color:var(--err-text);margin-top:10px;text-align:center;"></div>
+    </div>
+  </div>
+
+  
+  <div id="appView" class="hidden">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div>
+          <div class="brand-title">雲林縣榮民服務處｜線上服務工作台</div>
+          <div class="brand-sub">常用回覆速查・手動提醒排程・自動提醒管理・AI 幫寫草稿</div>
+        </div>
+        <div class="top-actions">
+          <select id="topOwnerSelect" class="owner-select-top" title="切換顯示的業務範圍" onchange="onOwnerProfileChanged(this.value)">
+            <option value="VETERAN_EMP">榮民就業 ＆ 訓後就業</option>
+            <option value="CLASS2_CPAS">二類就業 ＆ CPAS 適性評量</option>
+            <option value="TRAIN_EDU_EXAM">職訓、就學進修 ＆ 考試</option>
+            <option value="ALL">全部業務（職代總覽）</option>
+          </select>
+          <span id="roleBadge" class="role-pill">同仁</span>
+          <button class="btn btn-ghost btn-sm" onclick="loadAllData(true)">同步</button>
+          <button class="btn btn-ghost btn-sm" onclick="doLogout(false)">登出</button>
+        </div>
+      </div>
+    </header>
+
+    
+    <nav class="nav-wrap">
+      <div class="nav-tabs">
+        <button class="nav-btn active" data-tab="daytime" onclick="switchTab('daytime')">常用回覆</button>
+        <button class="nav-btn" data-tab="assist" onclick="switchTab('assist')">AI 幫寫草稿</button>
+        <button class="nav-btn" data-tab="reminder" onclick="switchTab('reminder')">自動提醒管理</button>
+        <button class="nav-btn" id="navManageBtn" data-tab="manage" onclick="switchTab('manage')">問答管理</button>
+        <div class="nav-right-icons">
+          <button class="nav-btn nav-btn-icon" id="navHelpBtn" title="本頁操作說明" aria-label="本頁操作說明" onclick="openHelpModal()">
+            <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+          </button>
+          <button class="nav-btn nav-btn-icon hidden" id="navSettingsBtn" data-tab="settings" title="管理者設定、排程、簡章匯入與診斷" aria-label="系統管理設定" onclick="switchTab('settings')">
+            <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <main class="container">
+      
+      <section id="tab-daytime" class="tab-section">
+        <div class="panel" style="padding:14px 20px;margin-bottom:16px;">
+          <div class="toolbar" style="margin-bottom:0;">
+            <div style="flex:1;min-width:240px;">
+              <strong style="font-size:15px;color:var(--charcoal);">傳送自動提醒登記連結給民眾</strong>
+              <span class="hint" style="margin-left:8px;">民眾點開填寫後，系統於期限前自動發送 LINE 提醒。</span>
+            </div>
+            <div class="toolbar-group" style="flex:1;max-width:460px;">
+              <input id="remLiffUrlDisplay" class="input" style="font-size:13px;padding:7px 12px;" readonly placeholder="尚未設定登記連結（請洽管理員）">
+              <button id="remCopyLiffBtn" class="btn btn-primary btn-sm" onclick="copyLiffUrlUI()">複製連結</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="split-2col">
+          
+          <div class="panel panel-accent-top" style="margin-bottom:0;">
+            <div class="toolbar">
+              <div class="toolbar-group">
+                <h3 class="panel-title" style="margin:0;">手動提醒排程</h3>
+                <span id="dayManualOwnerBadge" class="badge badge-cat">負責業務</span>
+                <span id="dayManualDueBadge" class="badge badge-dark">載入中...</span>
+              </div>
+              <div class="toolbar-group">
+                <button type="button" class="btn btn-primary btn-sm" onclick="openManualCreateModal()">新增手動提醒</button>
+                <button type="button" class="btn btn-sm" onclick="refreshManualRemindersUI(true)">重整</button>
+              </div>
+            </div>
+
+            <div class="toolbar-group" style="margin-bottom:12px;">
+              <select id="manualScopeFilter" class="select" style="width:auto;" onchange="renderManualReminders()">
+                <option value="MY_SCOPE">僅看我的業務</option>
+                <option value="ALL">全部業務</option>
+                <option value="榮民就業">榮民就業</option>
+                <option value="二類就業">二類就業</option>
+                <option value="訓後就業">訓後就業</option>
+                <option value="就學進修">就學進修</option>
+                <option value="就業考試">就業考試</option>
+                <option value="職業訓練">職業訓練</option>
+              </select>
+              <select id="manualDueFilter" class="select" style="width:auto;" onchange="renderManualReminders()">
+                <option value="PENDING">全部待提醒</option>
+                <option value="DUE_SOON">7 天內到期</option>
+                <option value="ALL">全部（含已傳送）</option>
+              </select>
+              <input id="manualSearchInput" class="input" style="flex:1;min-width:140px;" placeholder="搜尋姓名、單位或班別..." oninput="renderManualReminders()">
+            </div>
+            <div id="manualCountLabel" class="hint" style="margin:-4px 0 10px;"></div>
+
+            <div id="manualReminderList" class="faq-list"></div>
+          </div>
+
+          
+          <div class="panel panel-cyan-top" style="margin-bottom:0;">
+            <div class="toolbar">
+              <h3 class="panel-title" style="margin:0;">常用回覆</h3>
+              <div class="toolbar-group">
+                <button class="btn btn-xs" id="dayPinFilterBtn" onclick="toggleDayPinFilter()">僅看釘選</button>
+                <button class="btn btn-xs" onclick="toggleAllDayExpand()">展開關鍵字</button>
+                <button class="btn btn-xs" id="dayEmojiToggleBtn" onclick="toggleEmojiBar('dayEmojiWrap', this)">插入符號</button>
+              </div>
+            </div>
+
+            <div class="toolbar-group" style="margin-bottom:10px;">
+              <input id="daySearch" class="input" style="flex:1;min-width:200px;" placeholder="搜尋關鍵字或內文（例：介紹卡、備案、收據）..." oninput="renderDaytimeList()">
+              <span id="dayCountLabel" class="hint" style="margin:0;"></span>
+            </div>
+
+            <div id="dayCatPills" class="pill-row"></div>
+
+            <div id="dayEmojiWrap" class="emoji-bar hidden">
+              <span style="font-size:12px;color:var(--muted);font-weight:600;margin-right:4px;">點選符號插入游標處：</span>
+              <span id="dayEmojiBtns"></span>
+            </div>
+
+            <div id="daytimeList" class="faq-list"></div>
+          </div>
+        </div>
+      </section>
+
+      
+      <section id="tab-assist" class="tab-section hidden">
+        <div class="panel">
+          <div class="toolbar" style="margin-bottom:10px;">
+            <div>
+              <h3 class="panel-title">貼上民眾問題，AI 幫您寫回覆草稿</h3>
+              <div class="hint" style="margin:0;">系統會自動遮蔽身分證與電話，依本處規定產出可直接複製貼回 LINE 的草稿。</div>
+            </div>
+          </div>
+
+          <div style="margin-bottom:10px;">
+            <label class="field-label">民眾提問內容</label>
+            <textarea id="manualQuestionInput" class="textarea" placeholder="直接貼上民眾在 LINE 詢問的內容..."></textarea>
+          </div>
+
+          <div class="toolbar-group">
+            <input id="manualSourceInput" class="input" style="max-width:240px;" value="線上詢問" placeholder="來源註記（選填）">
+            <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer;">
+              <input type="checkbox" id="manualPushTgChk" checked> 同步傳送到對應承辦人 Telegram
+            </label>
+            <button class="btn btn-primary" style="margin-left:auto;" onclick="runManualDraftAssistUI()">產出回覆草稿</button>
+          </div>
+
+          <div id="manualResultBox" class="hidden" style="margin-top:16px;padding:14px;border-radius:12px;border:1px solid var(--border);background:var(--surface-soft);">
+            <div class="toolbar" style="margin-bottom:8px;">
+              <div class="toolbar-group">
+                <span id="manualResSourceBadge" class="badge badge-cyan"></span>
+                <span id="manualResPushBadge" class="badge badge-on"></span>
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="copyTextValue(document.getElementById('manualResDraftArea').value, '已複製建議回覆，可直接貼回 LINE')">複製回覆</button>
+            </div>
+            <div id="manualResMaskedQ" class="draft-q-box" style="margin-top:0;margin-bottom:8px;"></div>
+            <textarea id="manualResDraftArea" class="textarea" style="min-height:110px;background:#FFF;"></textarea>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="toolbar">
+            <div>
+              <h3 class="panel-title">近期草稿紀錄</h3>
+              <div class="hint" style="margin:0;">預設篩選您負責業務的草稿，也可切換檢視全部業務。</div>
+            </div>
+            <div class="toolbar-group">
+              <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--muted);cursor:pointer;">
+                <input type="checkbox" id="draftAutoRefreshChk" onchange="toggleDraftAutoRefresh(this.checked)"> 每 30 秒自動更新
+              </label>
+              <button class="btn btn-sm" onclick="refreshGroupDraftsUI(true)">重新整理</button>
+              <button id="clearDraftsBtn" class="btn btn-danger btn-sm hidden" onclick="clearGroupDraftsUI()">清空紀錄</button>
+            </div>
+          </div>
+
+          <div class="toolbar-group" style="margin-bottom:12px;">
+            <select id="draftScopeFilter" class="select" style="width:auto;" onchange="renderDraftBoardList()">
+              <option value="MY_SCOPE">僅看我的業務</option>
+              <option value="ALL">全部業務紀錄</option>
+            </select>
+            <input id="draftSearchInput" class="input" style="max-width:320px;" placeholder="搜尋提問或草稿關鍵字..." oninput="renderDraftBoardList()">
+            <span id="draftCountLabel" class="hint" style="margin:0;"></span>
+          </div>
+
+          <div id="draftBoardList" class="faq-list"></div>
+        </div>
+      </section>
+
+      
+      <section id="tab-reminder" class="tab-section hidden">
+        <div class="split-2col">
+          
+          <div class="panel panel-accent-top" style="margin-bottom:0;">
+            <div class="toolbar">
+              <div>
+                <h3 class="panel-title">提醒文案排程管理</h3>
+                <div class="hint" style="margin:0;">同時套用於「自動推播」與「手動提醒排程」；點複製新增可加階段。</div>
+              </div>
+              <button id="remTplAddBtn" class="btn btn-primary btn-sm" onclick="openReminderTplModal(null, false)">新增規則</button>
+            </div>
+
+            <div class="toolbar-group" style="margin-bottom:12px;">
+              <select id="remTplGroupFilter" class="select" style="width:auto;" onchange="onRemTplGroupFilterChange()">
+                <option value="MY_SCOPE">僅看我的業務</option>
+                <option value="ALL">全部 6 大分區</option>
+                <option value="榮民就業">1. 榮民就業</option>
+                <option value="二類就業">2. 二類就業</option>
+                <option value="訓後就業">3. 訓後就業</option>
+                <option value="就學進修">4. 就學進修</option>
+                <option value="就業考試">5. 就業考試</option>
+                <option value="職業訓練">6. 職業訓練</option>
+              </select>
+              <select id="remTplTypeFilter" class="select" style="flex:1;min-width:150px;" onchange="renderReminderTemplates()"></select>
+            </div>
+
+            <div id="remTplLockNotice" class="info-bar warn hidden">
+              目前管理員已鎖定一般同仁編輯權限，僅供檢視。
+            </div>
+            <div id="remTemplateList" class="faq-list"></div>
+          </div>
+
+          
+          <div class="panel panel-cyan-top" style="margin-bottom:0;">
+            <div class="toolbar">
+              <div>
+                <h3 class="panel-title">已綁定自動提醒名單</h3>
+                <div class="hint" style="margin:0;">已完成 LINE 登記之民眾排程，系統到期會自動推播。</div>
+              </div>
+              <button class="btn btn-sm" onclick="loadReminderData(true)">重整</button>
+            </div>
+
+            <div class="toolbar-group" style="margin-bottom:12px;">
+              <select id="remRecScopeFilter" class="select" style="width:auto;" onchange="renderReminderRecords()">
+                <option value="MY_SCOPE">僅看我的業務</option>
+                <option value="ALL">全部業務名單</option>
+              </select>
+              <select id="remRecStatusFilter" class="select" style="width:auto;" onchange="renderReminderRecords()">
+                <option value="ALL">全部狀態</option>
+                <option value="待發送">待發送</option>
+                <option value="已發送">已發送</option>
+                <option value="已結案取消">已取消</option>
+                <option value="發送失敗">發送失敗</option>
+              </select>
+              <input id="remRecSearch" class="input" style="flex:1;min-width:140px;" placeholder="搜尋姓名、暱稱或單位..." oninput="renderReminderRecords()">
+            </div>
+            <div id="remRecCountLabel" class="hint" style="margin:-4px 0 10px;"></div>
+
+            <div id="remRecordList" class="faq-list"></div>
+          </div>
+        </div>
+      </section>
+
+      
+      <section id="tab-manage" class="tab-section hidden">
+        <div class="panel">
+          <div class="toolbar">
+            <div class="toolbar-group">
+              <select id="mgrCatSelect" class="select" style="width:auto;min-width:170px;" onchange="renderManageList()"></select>
+              <select id="mgrStatusFilter" class="select" style="width:auto;" onchange="renderManageList()">
+                <option value="ALL">全部狀態</option>
+                <option value="啟用">啟用（全時段）</option>
+                <option value="僅白天">僅白天複製</option>
+                <option value="停用">停用</option>
+              </select>
+              <input id="mgrSearch" class="input" style="width:220px;" placeholder="搜尋關鍵字或內文..." oninput="renderManageList()">
+            </div>
+            <div class="toolbar-group" id="mgrEditButtons">
+              <button class="btn btn-primary btn-sm" onclick="openFaqModal(null)">新增問答</button>
+              <button class="btn btn-soft btn-sm" onclick="openAiBatchModal()">AI 批次建表</button>
+              <button class="btn btn-sm" onclick="openMediaToolModal('image')">上傳圖片</button>
+              <button class="btn btn-sm" onclick="openMediaToolModal('audio')">上傳語音</button>
+            </div>
+          </div>
+          <div id="mgrLockNotice" class="info-bar warn hidden">
+            目前管理員已鎖定一般同仁編輯權限，僅供瀏覽檢視。
+          </div>
+          <div id="manageList" class="faq-list"></div>
+        </div>
+      </section>
+
+      
+      <section id="tab-settings" class="tab-section hidden">
+        <div class="sub-tabs">
+          <button type="button" id="subBtn-sys" class="sub-tab-btn active" onclick="switchSettingsSubTab('sys')">基本與 Telegram 分派</button>
+          <button type="button" id="subBtn-rem" class="sub-tab-btn" onclick="switchSettingsSubTab('rem')">推播排程與 LIFF 參數</button>
+          <button type="button" id="subBtn-sch" class="sub-tab-btn" onclick="switchSettingsSubTab('sch')">官方簡章匯入</button>
+          <button type="button" id="subBtn-tg" class="sub-tab-btn" onclick="switchSettingsSubTab('tg')">群組與推播工具</button>
+          <button type="button" id="subBtn-health" class="sub-tab-btn" onclick="switchSettingsSubTab('health')">健檢與連線診斷</button>
+        </div>
+
+        
+        <div id="subtab-sys" class="settings-sub-section">
+          <div class="panel">
+            <h3 class="panel-title">權限與雲端連線狀態</h3>
+            <div class="switch-row" style="margin:12px 0;">
+              <div>
+                <div style="font-weight:600;">開放一般同仁編輯問答、提醒文案與上傳媒體</div>
+                <div class="hint" style="margin:0;">關閉後一般同仁僅能複製問答、管理手動提醒排程與使用 AI 幫寫草稿。</div>
+              </div>
+              <label style="display:flex;align-items:center;gap:8px;font-weight:600;cursor:pointer;">
+                <input type="checkbox" id="setAllowStaffEdit" onchange="toggleStaffEditUI(this.checked)">
+                <span id="staffEditLabel">已開放</span>
+              </label>
+            </div>
+            <div class="grid-3">
+              <div class="stat-card">
+                <div class="stat-label">GitHub 媒體空間</div>
+                <div id="setGithubInfo" class="stat-val" style="font-size:14px;">檢查中...</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">Gemini AI 模型</div>
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:4px;">
+                  <span id="setGeminiInfo" class="stat-val" style="font-size:14px;margin:0;">檢查中...</span>
+                  <button class="btn btn-xs" onclick="refreshGeminiModelUI()">重測</button>
+                </div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">Telegram 推播狀態</div>
+                <div id="setTgStatusInfo" class="stat-val" style="font-size:14px;">檢查中...</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h3 class="panel-title">依承辦業務綁定 Telegram 推播（各收各的業務）</h3>
+            <div class="hint" style="margin-bottom:14px;">
+              系統攔截到提問並產出草稿後，會依業務自動判斷並<strong>只推播給對應承辦人的 Telegram ID</strong>（多人以半形逗號分隔）。
+            </div>
+
+            <div class="grid-2" style="margin-bottom:12px;">
+              <div>
+                <label class="field-label">1. 榮民就業 ＆ 訓後就業（Telegram ID）</label>
+                <div style="display:flex;gap:6px;">
+                  <input id="setTgIdsVeteranEmp" class="input" placeholder="純數字 ID，例：8273099738">
+                  <button type="button" class="btn btn-xs" onclick="sendTestTelegramUI(document.getElementById('setTgIdsVeteranEmp').value)">測試</button>
+                </div>
+              </div>
+              <div>
+                <label class="field-label">2. 二類就業 ＆ CPAS 適性評量（Telegram ID）</label>
+                <div style="display:flex;gap:6px;">
+                  <input id="setTgIdsClass2Cpas" class="input" placeholder="純數字 ID，多人逗號分隔">
+                  <button type="button" class="btn btn-xs" onclick="sendTestTelegramUI(document.getElementById('setTgIdsClass2Cpas').value)">測試</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid-2" style="margin-bottom:14px;">
+              <div>
+                <label class="field-label">3. 職業訓練、就學進修 ＆ 就業考試（Telegram ID）</label>
+                <div style="display:flex;gap:6px;">
+                  <input id="setTgIdsTrainEduExam" class="input" placeholder="純數字 ID，多人逗號分隔">
+                  <button type="button" class="btn btn-xs" onclick="sendTestTelegramUI(document.getElementById('setTgIdsTrainEduExam').value)">測試</button>
+                </div>
+              </div>
+              <div>
+                <label class="field-label">共通／未分類備援對象 Telegram ID</label>
+                <div style="display:flex;gap:6px;">
+                  <input id="setDefaultTelegramIds" class="input" placeholder="共通規定或未綁定時之備援 ID">
+                  <button type="button" class="btn btn-xs" onclick="sendTestTelegramUI(document.getElementById('setDefaultTelegramIds').value)">測試</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid-2" style="margin-bottom:12px;">
+              <div>
+                <label class="field-label">Gemini API Key（選填；留空讀指令碼屬性）</label>
+                <input id="setGeminiApiKey" type="password" class="input" autocomplete="off">
+              </div>
+              <div>
+                <label class="field-label">Telegram Bot Token（BotFather 取得）</label>
+                <input id="setTelegramBotToken" type="password" class="input" autocomplete="off">
+              </div>
+            </div>
+
+            <div class="grid-3" style="margin-bottom:12px;">
+              <div>
+                <label class="field-label">上班私訊自動擬稿推播</label>
+                <select id="setDmDaytimeAssist" class="select">
+                  <option value="true">開啟（不回民眾，僅推草稿）</option>
+                  <option value="false">關閉</option>
+                </select>
+              </div>
+              <div>
+                <label class="field-label">LINE 群組輔助擬稿</label>
+                <select id="setGroupAssistEnabled" class="select">
+                  <option value="true">開啟（絕不在群組發言）</option>
+                  <option value="false">關閉</option>
+                </select>
+              </div>
+              <div>
+                <label class="field-label">群組輔助運作時段</label>
+                <select id="setGroupWorkHoursOnly" class="select">
+                  <option value="true">僅上班時段</option>
+                  <option value="false">24 小時</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="grid-3" style="margin-bottom:14px;">
+              <div>
+                <label class="field-label">草稿看板保留筆數</label>
+                <input id="setGroupDraftMaxRows" type="number" min="20" max="500" class="input" placeholder="100">
+              </div>
+              <div>
+                <label class="field-label">有效提問疑問詞（逗號分隔）</label>
+                <input id="setGroupTriggerWords" class="input">
+              </div>
+              <div>
+                <label class="field-label">純寒暄忽略詞（逗號分隔）</label>
+                <input id="setGroupIgnoreWords" class="input">
+              </div>
+            </div>
+
+            <button class="btn btn-primary" onclick="saveSettingsUI()">儲存全部設定</button>
+          </div>
+
+          <div class="panel">
+            <h3 class="panel-title">上下班時段與自動回覆參數</h3>
+            <div class="grid-3" style="margin:12px 0;">
+              <div>
+                <label class="field-label">上班星期（1=週一 ... 7=週日）</label>
+                <input id="setWorkDays" class="input" placeholder="1,2,3,4,5">
+              </div>
+              <div>
+                <label class="field-label">上班開始時間（HH:mm）</label>
+                <input id="setWorkStart" class="input" placeholder="08:00">
+              </div>
+              <div>
+                <label class="field-label">上班結束時間（HH:mm）</label>
+                <input id="setWorkEnd" class="input" placeholder="17:00">
+              </div>
+            </div>
+
+            <div class="grid-3" style="margin-bottom:12px;">
+              <div>
+                <label class="field-label">測試模式（上班時段也自動回覆）</label>
+                <select id="setTestMode" class="select">
+                  <option value="false">關閉（正式模式）</option>
+                  <option value="true">開啟（測試模式）</option>
+                </select>
+              </div>
+              <div>
+                <label class="field-label">防洗版冷卻分鐘數</label>
+                <input id="setCooldown" type="number" min="1" max="360" class="input" placeholder="60">
+              </div>
+              <div>
+                <label class="field-label">收到貼圖靜默忽略</label>
+                <select id="setIgnoreSticker" class="select">
+                  <option value="true">是</option>
+                  <option value="false">否</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="grid-3" style="margin-bottom:12px;">
+              <div>
+                <label class="field-label">LINE 氣泡發送者名稱（限 20 字）</label>
+                <input id="setSenderName" class="input" maxlength="20">
+              </div>
+              <div>
+                <label class="field-label">第一則文字固定前綴（可留空）</label>
+                <input id="setPrefixText" class="input">
+              </div>
+              <div>
+                <label class="field-label">健檢異常通知信箱</label>
+                <input id="setAlertEmail" class="input" type="email">
+              </div>
+            </div>
+
+            <div style="margin-bottom:12px;">
+              <label class="field-label">下班入口卡片按鈕（半形逗號分隔）</label>
+              <input id="setDefaultQuickReplies" class="input">
+            </div>
+
+            <div class="grid-2" style="margin-bottom:12px;">
+              <div>
+                <label class="field-label">未命中關鍵字預設下班回覆</label>
+                <textarea id="setDefaultReply" class="textarea"></textarea>
+              </div>
+              <div>
+                <label class="field-label">收到圖片／檔案／純網址引導回覆</label>
+                <textarea id="setMediaReply" class="textarea"></textarea>
+              </div>
+            </div>
+
+            <div style="margin-bottom:12px;">
+              <label class="field-label">靜默黑名單關鍵字（逗號分隔）</label>
+              <input id="setBlacklist" class="input">
+            </div>
+
+            <div style="margin-bottom:14px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
+                <label class="field-label" style="margin:0;">Gemini AI 共同機關背景說明</label>
+                <button class="btn btn-xs" onclick="resetAiContextDefault()">還原預設</button>
+              </div>
+              <textarea id="setAiContext" class="textarea" style="min-height:110px;"></textarea>
+            </div>
+
+            <button class="btn btn-primary" onclick="saveSettingsUI()">儲存全部設定</button>
+          </div>
+
+          <div class="panel">
+            <div class="toolbar">
+              <div>
+                <h3 class="panel-title">國定假日、補班日與停班日 <span id="holidayCountBadge" class="badge badge-cat" style="margin-left:6px;">0 筆</span></h3>
+                <div class="hint" style="margin:0;">連動下班自動回覆、職訓備案試算與提醒遇假日自動提前。</div>
+              </div>
+              <div class="toolbar-group">
+                <select id="importYearSelect" class="select" style="width:auto;">
+                  <option value="2026">2026 年</option>
+                  <option value="2027">2027 年</option>
+                  <option value="2028">2028 年</option>
+                </select>
+                <button class="btn btn-sm" onclick="importGovHolidaysUI()">線上匯入年度</button>
+                <button class="btn btn-sm" onclick="pickIcsHolidayFile()">上傳 .ics 檔</button>
+              </div>
+            </div>
+
+            <div class="toolbar-group" style="margin-bottom:12px;">
+              <input id="newHolDate" type="date" class="input" style="width:160px;">
+              <select id="newHolType" class="select" style="width:100px;">
+                <option value="放假">放假</option>
+                <option value="補班">補班</option>
+              </select>
+              <input id="newHolNote" class="input" style="width:210px;" placeholder="說明（例：雲林縣颱風假）">
+              <button class="btn btn-sm" onclick="addHolidayRow()">加入</button>
+              <button class="btn btn-primary btn-sm" onclick="saveHolidaysUI()">儲存假日表</button>
+            </div>
+
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="width:130px;">日期</th>
+                    <th style="width:90px;">類型</th>
+                    <th>說明</th>
+                    <th style="width:75px;">操作</th>
+                  </tr>
+                </thead>
+                <tbody id="holidayTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h3 class="panel-title">業務分類分頁（FAQ_ 分頁）</h3>
+            <div class="toolbar-group" style="margin:10px 0 12px;">
+              <input id="newCatInput" class="input" style="max-width:240px;" placeholder="輸入新業務名稱">
+              <button class="btn btn-primary btn-sm" onclick="addCategoryUI()">新增分類</button>
+            </div>
+            <div id="catManageList" class="pill-row"></div>
+          </div>
+        </div>
+
+        
+        <div id="subtab-rem" class="settings-sub-section hidden">
+          <div class="panel">
+            <div class="toolbar">
+              <div>
+                <h3 class="panel-title">自動推播排程、額度與 LIFF 參數</h3>
+                <div class="hint" style="margin:0;">提醒文案與階段規則請至「自動提醒管理」左側的「提醒文案排程管理」維護。</div>
+              </div>
+              <div class="toolbar-group">
+                <button class="btn btn-sm" onclick="loadReminderData(true)">重新整理</button>
+                <button id="remRunNowBtn" class="btn btn-dark btn-sm" onclick="runReminderPushNowUI()">立即掃描推播</button>
+              </div>
+            </div>
+
+            <div class="stat-grid">
+              <div class="stat-card">
+                <div class="stat-label">本月 Push 推播額度</div>
+                <div id="remPushQuotaText" class="stat-val">讀取中...</div>
+                <div class="quota-bar-wrap"><div id="remPushQuotaBar" class="quota-bar-fill" style="width:0%;"></div></div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">每小時自動掃描排程</div>
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px;">
+                  <span id="remTriggerBadge" class="badge badge-off">檢查中...</span>
+                  <button id="remTriggerToggleBtn" class="btn btn-xs" onclick="toggleReminderTriggerUI()">切換</button>
+                </div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">LIFF 身分驗證模式</div>
+                <div id="remSecurityBadge" class="stat-val" style="font-size:14px;">檢查中...</div>
+              </div>
+            </div>
+
+            <div class="grid-2" style="margin-bottom:12px;">
+              <div>
+                <label class="field-label">LINE Login Channel ID（10 碼數字）</label>
+                <input id="setLiffChannelId" class="input" placeholder="測試可留空；正式上線必填">
+              </div>
+              <div>
+                <label class="field-label">民眾登記頁 LIFF 網址</label>
+                <input id="setLiffUrl" class="input" placeholder="https://liff.line.me/xxxxxxxx-xxxxxxxx">
+              </div>
+            </div>
+            <div class="grid-2" style="margin-bottom:14px;">
+              <div>
+                <label class="field-label">每月 Push 訊息額度上限</label>
+                <input id="setPushMonthlyLimit" type="number" min="10" max="50000" class="input" placeholder="200">
+              </div>
+              <div>
+                <label class="field-label">LINE 官方帳號聊天後台網址</label>
+                <input id="setOaChatUrl" class="input" placeholder="https://chat.line.biz/">
+              </div>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="saveSettingsUI()">儲存推播與 LIFF 參數</button>
+          </div>
+        </div>
+
+        
+        <div id="subtab-sch" class="settings-sub-section hidden">
+          <div class="panel">
+            <div class="toolbar">
+              <div>
+                <h3 class="panel-title">官方期程資料庫（職訓簡章／委辦班隊／考試期日表）</h3>
+                <div class="hint" style="margin:0;">匯入後，LIFF 與「新增手動提醒」皆可直接點選自動帶入日期與班別名稱。</div>
+              </div>
+              <div class="toolbar-group">
+                <select id="schSourceFilter" class="select" style="width:auto;" onchange="renderOfficialSchedulesTable()">
+                  <option value="ALL">全部來源</option>
+                  <option value="職訓中心自辦課程">職訓中心自辦課程</option>
+                  <option value="退輔會委辦班隊">退輔會委辦班隊</option>
+                  <option value="退輔會委辦就學班隊">退輔會委辦就學班隊</option>
+                  <option value="考試院考試期日表">考試院考試期日表</option>
+                </select>
+                <button id="openAiScheduleBtn" class="btn btn-primary btn-sm" onclick="openOfficialScheduleModal()">Gemini 解析簡章匯入</button>
+              </div>
+            </div>
+
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>來源類型</th>
+                    <th>對應業務</th>
+                    <th>班隊／考試名稱</th>
+                    <th>報名起訖</th>
+                    <th>開訓／考試起訖</th>
+                    <th>全日制</th>
+                    <th style="width:70px;">操作</th>
+                  </tr>
+                </thead>
+                <tbody id="officialScheduleTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        
+        <div id="subtab-tg" class="settings-sub-section hidden">
+          <div id="assistStatusBar" class="info-bar"></div>
+          <div class="panel">
+            <div class="toolbar">
+              <div>
+                <h3 class="panel-title">Telegram 承辦人 ID 查詢與群組指派</h3>
+                <div class="hint" style="margin:0;">請同仁先在 Telegram 傳任意一句話給機器人，再點「查詢同仁 ID」即可複製貼回基本設定。</div>
+              </div>
+              <div class="toolbar-group">
+                <button class="btn btn-cyan btn-sm" onclick="fetchTelegramUsersUI()">查詢近期傳訊同仁 ID</button>
+                <button class="btn btn-sm" onclick="sendTestTelegramUI()">發送測試推播</button>
+                <button id="addGroupAssignBtn" class="btn btn-primary btn-sm" onclick="openGroupAssignModal(null)">新增群組指派</button>
+              </div>
+            </div>
+
+            <div id="tgDiscoveredBox" class="hidden" style="margin-bottom:14px;padding:12px;border-radius:10px;background:var(--surface-soft);border:1px solid var(--border);">
+              <div style="font-size:12px;font-weight:600;color:var(--charcoal);margin-bottom:8px;">點擊以下同仁標籤即可複製數字 ID：</div>
+              <div id="tgDiscoveredChips" class="toolbar-group"></div>
+            </div>
+
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>群組名稱</th>
+                    <th>群組 ID</th>
+                    <th>狀態</th>
+                    <th>指派 Telegram ID</th>
+                    <th>備註</th>
+                    <th>最後互動</th>
+                    <th style="width:120px;">操作</th>
+                  </tr>
+                </thead>
+                <tbody id="groupAssignTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        
+        <div id="subtab-health" class="settings-sub-section hidden">
+          <div class="panel">
+            <div class="toolbar">
+              <div>
+                <h3 class="panel-title">LINE Webhook 連線診斷與快取重整</h3>
+                <div class="hint" style="margin:0;">僅顯示觸發狀態與代碼，不留存民眾個資。</div>
+              </div>
+              <div class="toolbar-group">
+                <button class="btn btn-primary btn-sm" onclick="loadWebhookDiag()">重新整理診斷</button>
+                <button class="btn btn-sm" onclick="clearCooldownsUI()">清除快取與冷卻</button>
+              </div>
+            </div>
+            <div id="diagStats" class="stat-grid"></div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="width:130px;">時間</th>
+                    <th style="width:140px;">狀態</th>
+                    <th>執行摘要</th>
+                  </tr>
+                </thead>
+                <tbody id="diagLogsBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="toolbar">
+              <div>
+                <h3 class="panel-title">全站網址與媒體健檢</h3>
+                <div class="hint" style="margin:0;">檢查問答題庫內所有官網連結、圖片與語音檔是否有效。</div>
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="runHealthCheckUI()">立即執行健檢</button>
+            </div>
+            <div id="healthSummary" class="stat-grid"></div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>檢查時間</th>
+                    <th>分頁</th>
+                    <th>位置</th>
+                    <th>狀態</th>
+                    <th>網址</th>
+                    <th>說明</th>
+                  </tr>
+                </thead>
+                <tbody id="healthTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  
+  <div id="helpModal" class="modal-backdrop hidden">
+    <div class="modal-card" style="max-width:540px;">
+      <div class="modal-head">
+        <h3 id="helpModalTitle">本頁操作說明</h3>
+        <button class="btn btn-ghost btn-xs" onclick="closeModal('helpModal')">關閉</button>
+      </div>
+      <div class="modal-body" id="helpModalBody"></div>
+      <div class="modal-foot">
+        <button class="btn btn-primary btn-sm" onclick="closeModal('helpModal')">我知道了</button>
+      </div>
+    </div>
+  </div>
+
+  
+  <div id="manualCreateModal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3>新增手動提醒排程</h3>
+        <button class="btn btn-ghost btn-xs" onclick="closeModal('manualCreateModal')">關閉</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="mcSourceSheetName">
+        <input type="hidden" id="mcSourceRowIndex">
+
+        <div class="source-import-box">
+          <div class="toolbar" style="margin-bottom:8px;">
+            <strong style="font-size:13.5px;color:var(--cyan-dark);">從試算表「手動名單_*」快速帶入（選填）</strong>
+            <select id="mcSourceFilter" class="select" style="width:auto;padding:5px 10px;font-size:12.5px;" onchange="renderMcSourceOptions()">
+              <option value="MY_SCOPE">僅看我的業務名單</option>
+              <option value="ALL">全部手動名單分頁</option>
+              <option value="手動名單_就業考試">手動名單_就業考試</option>
+              <option value="手動名單_會外職訓">手動名單_會外職訓</option>
+              <option value="手動名單_大專校院">手動名單_大專校院</option>
+              <option value="手動名單_職訓中心">手動名單_職訓中心</option>
+            </select>
+          </div>
+          <select id="mcSourceSelect" class="select" onchange="onMcSourceRowSelect()">
+            <option value="">-- 自行手動輸入（不從名單帶入） --</option>
+          </select>
+          <div id="mcSourceMissingNotice" class="info-bar warn hidden" style="margin:8px 0 0;padding:7px 11px;font-size:12.5px;"></div>
+        </div>
+
+        <div class="grid-2" style="margin-bottom:12px;">
+          <div>
+            <label class="field-label">業務分區</label>
+            <select id="mcGroup" class="select" onchange="onMcGroupChange()">
+              <option value="榮民就業">1. 榮民就業</option>
+              <option value="二類就業">2. 二類就業</option>
+              <option value="訓後就業">3. 訓後就業</option>
+              <option value="就學進修">4. 就學進修</option>
+              <option value="就業考試">5. 就業考試</option>
+              <option value="職業訓練">6. 職業訓練</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label">申請種類</label>
+            <select id="mcApplyType" class="select" onchange="onMcApplyTypeChange()">
+              <option value="">-- 請選擇 --</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid-2" style="margin-bottom:12px;">
+          <div>
+            <label class="field-label">申請人姓名或稱呼（代入訊息開頭）</label>
+            <input id="mcApplicantName" class="input" maxlength="30" placeholder="例：王先生、陳小明" oninput="debouncedMcPreview()">
+          </div>
+          <div>
+            <label class="field-label" id="mcCaseNoteLabel">入職單位（選填）</label>
+            <input id="mcCaseNote" class="input" maxlength="80" placeholder="例：OO股份有限公司" oninput="debouncedMcPreview()">
+          </div>
+        </div>
+
+        <details id="mcOfficialPanel" class="simple-guide hidden">
+          <summary>
+            <span id="mcOfficialTitle">官方期程快速帶入（選填）</span>
+            <span class="hint" style="margin:0;">展開選取</span>
+          </summary>
+          <div style="margin-top:10px;">
+            <select id="mcOfficialSelect" class="select" onchange="onMcOfficialSelect()">
+              <option value="">-- 自行輸入日期 --</option>
+            </select>
+          </div>
+        </details>
+
+        <div id="mcSemesterWrap" class="hidden" style="margin-bottom:12px;">
+          <label class="field-label">預計申請學期快選（自動帶入補助起訖日）</label>
+          <select id="mcSemesterSelect" class="select" onchange="onMcSemesterSelect()"></select>
+        </div>
+
+        <div id="mcFullTimeWrap" class="hidden" style="margin-bottom:12px;">
+          <label style="display:flex;align-items:center;gap:6px;font-size:13.5px;font-weight:600;cursor:pointer;">
+            <input type="checkbox" id="mcIsFullTimeChk" onchange="previewManualCreateStages()"> 本班屬全日制課程（完訓後自動套用訓後就業津貼提醒）
+          </label>
+        </div>
+
+        <div id="mcDateFieldsWrap" class="grid-2" style="margin-bottom:12px;"></div>
+
+        <div class="toolbar-group" style="margin-bottom:14px;">
+          <button type="button" class="btn btn-soft btn-sm" onclick="previewManualCreateStages()">套用規則試算排程與文案</button>
+          <span class="hint" style="margin:0;">可修改各階段提醒日與文案，不需要的階段可直接點移除。</span>
+        </div>
+
+        <div id="mcStagesPreviewWrap" class="hidden">
+          <div class="field-label" style="margin-bottom:8px;">預計建立之提醒階段（可直接調整日期、內容或移除）：</div>
+          <div id="mcStagesPreviewList"></div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn" onclick="closeModal('manualCreateModal')">取消</button>
+        <button id="mcSaveBtn" class="btn btn-primary" onclick="saveManualCreateUI()">建立提醒排程</button>
+      </div>
+    </div>
+  </div>
+
+  
+  <div id="manualEditModal" class="modal-backdrop hidden">
+    <div class="modal-card" style="max-width:680px;">
+      <div class="modal-head">
+        <h3>編輯手動提醒排程與內容</h3>
+        <button class="btn btn-ghost btn-xs" onclick="closeModal('manualEditModal')">關閉</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="meRowIndex">
+        <input type="hidden" id="meCaseId">
+
+        <div class="grid-2" style="margin-bottom:12px;">
+          <div>
+            <label class="field-label">申請人姓名／稱呼</label>
+            <input id="meApplicantName" class="input" maxlength="30">
+          </div>
+          <div>
+            <label class="field-label">單位／學校／班別備註</label>
+            <input id="meCaseNote" class="input" maxlength="80">
+          </div>
+        </div>
+
+        <div class="grid-3" style="margin-bottom:12px;">
+          <div>
+            <label class="field-label">階段名稱</label>
+            <input id="meStageName" class="input" maxlength="60">
+          </div>
+          <div>
+            <label class="field-label">預計提醒日（可自行改期）</label>
+            <input id="meRemindDate" type="date" class="input">
+          </div>
+          <div>
+            <label class="field-label">提醒狀態</label>
+            <select id="meStatus" class="select">
+              <option value="待提醒">待提醒</option>
+              <option value="已傳送">已傳送</option>
+              <option value="已取消">已取消</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="field-label">提醒訊息內容（可直接修改後存檔或複製）</label>
+          <textarea id="meCopyText" class="textarea" style="min-height:170px;"></textarea>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-danger btn-sm" onclick="deleteManualFromModal(false)">移除此階段</button>
+        <button type="button" class="btn btn-danger btn-sm" style="margin-right:auto;" onclick="deleteManualFromModal(true)">刪除整筆案件</button>
+        <button type="button" class="btn" onclick="closeModal('manualEditModal')">取消</button>
+        <button type="button" class="btn btn-primary" onclick="saveManualEditUI()">儲存修改</button>
+      </div>
+    </div>
+  </div>
+
+  
+  <div id="faqModal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3 id="faqModalTitle">新增問答</h3>
+        <button class="btn btn-ghost btn-xs" onclick="closeModal('faqModal')">關閉</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="editRowIndex">
+
+        <div class="grid-3" style="margin-bottom:12px;">
+          <div>
+            <label class="field-label">業務分頁</label>
+            <select id="editCategory" class="select"></select>
+          </div>
+          <div>
+            <label class="field-label">啟用狀態</label>
+            <select id="editStatus" class="select">
+              <option value="啟用">啟用（白天複製＋下班自動回）</option>
+              <option value="僅白天">僅白天複製</option>
+              <option value="停用">停用</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label">承辦電話（自動附掛尾端）</label>
+            <input id="editContact" class="input" placeholder="雲林縣榮服處 05-5322742">
+          </div>
+        </div>
+
+        <div class="grid-2" style="margin-bottom:12px;">
+          <div>
+            <label class="field-label">觸發關鍵字（半形逗號分隔）</label>
+            <input id="editKeywords" class="input" placeholder="例：備案日試算,開訓前幾天">
+          </div>
+          <div>
+            <label class="field-label">引導按鈕（選填，半形逗號分隔）</label>
+            <input id="editOptions" class="input" placeholder="例：確定職訓查資格,開訓前怎麼備案">
+          </div>
+        </div>
+
+        <div style="margin-bottom:10px;">
+          <button type="button" class="btn btn-xs" onclick="toggleEmojiBar('modalEmojiWrap', this)">插入符號</button>
+        </div>
+        <div id="modalEmojiWrap" class="emoji-bar hidden">
+          <span style="font-size:12px;color:var(--muted);margin-right:4px;">點選符號插入游標處：</span>
+          <span id="modalEmojiBtns"></span>
+        </div>
+
+        <div id="slotsContainer"></div>
+
+        <div>
+          <label class="field-label">備註／更新日期</label>
+          <input id="editNote" class="input" placeholder="留空將自動填入今日日期">
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn" onclick="closeModal('faqModal')">取消</button>
+        <button class="btn btn-primary" onclick="saveFaqUI()">儲存並同步</button>
+      </div>
+    </div>
+  </div>
+
+  
+  <div id="aiBatchModal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3>AI 法規／簡章批次建表</h3>
+        <button class="btn btn-ghost btn-xs" onclick="closeModal('aiBatchModal')">關閉</button>
+      </div>
+      <div class="modal-body">
+        <div class="grid-3" style="margin-bottom:12px;">
+          <div>
+            <label class="field-label">目標業務分頁</label>
+            <select id="batchCat" class="select"></select>
+          </div>
+          <div>
+            <label class="field-label">預設狀態</label>
+            <select id="batchStatus" class="select">
+              <option value="啟用">啟用（全時段）</option>
+              <option value="僅白天">僅白天複製</option>
+            </select>
+          </div>
+          <div style="display:flex;align-items:flex-end;padding-bottom:6px;">
+            <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">
+              <input type="checkbox" id="batchBuildMenu" checked> 自動建立第 1 筆主選單
+            </label>
+          </div>
+        </div>
+
+        <div style="margin-bottom:10px;">
+          <label class="field-label">貼上法規、簡章或問答文字</label>
+          <textarea id="batchRawText" class="textarea" style="min-height:130px;" placeholder="貼上文字或附加錄音檔..."></textarea>
+        </div>
+
+        <div class="toolbar-group" style="margin-bottom:14px;">
+          <button class="btn btn-sm" onclick="pickBatchAudioFile()">附加 .m4a 音檔</button>
+          <span id="batchAudioName" class="hint" style="margin:0;">未選擇音檔</span>
+          <button class="btn btn-primary btn-sm" style="margin-left:auto;" onclick="runAiBatchAnalyze()">開始 AI 拆解</button>
+        </div>
+
+        <div id="batchPreviewWrap" class="hidden">
+          <div class="info-bar ok"><span id="batchResultInfo"></span></div>
+          <div id="batchPreviewList" class="faq-list"></div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn" onclick="closeModal('aiBatchModal')">關閉</button>
+        <button id="batchSaveBtn" class="btn btn-primary hidden" onclick="saveAiBatchItems()">寫入勾選項目</button>
+      </div>
+    </div>
+  </div>
+
+  
+  <div id="mediaToolModal" class="modal-backdrop hidden">
+    <div class="modal-card" style="max-width:560px;">
+      <div class="modal-head">
+        <h3 id="mediaToolTitle">上傳圖片轉網址</h3>
+        <button class="btn btn-ghost btn-xs" onclick="closeModal('mediaToolModal')">關閉</button>
+      </div>
+      <div class="modal-body">
+        <div id="mediaToolDesc" class="info-bar" style="margin-bottom:14px;"></div>
+        <div style="text-align:center;padding:24px;border:1.5px dashed #D5D8DC;border-radius:12px;background:var(--surface-soft);margin-bottom:14px;">
+          <button id="mediaToolPickBtn" class="btn btn-primary" onclick="triggerStandaloneMediaPick()">選擇檔案並上傳</button>
+          <div id="mediaToolHint" class="hint" style="margin-top:8px;"></div>
+        </div>
+        <div id="mediaToolResult" class="hidden">
+          <label class="field-label">直連網址（請單獨貼入任一訊息格）</label>
+          <div style="display:flex;gap:8px;margin-bottom:10px;">
+            <input id="mediaToolUrlInput" class="input" readonly>
+            <button class="btn btn-primary btn-sm" onclick="copyTextValue(document.getElementById('mediaToolUrlInput').value, '已複製網址')">複製</button>
+          </div>
+          <div id="mediaToolPreview"></div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn" onclick="closeModal('mediaToolModal')">關閉</button>
+      </div>
+    </div>
+  </div>
+
+  
+  <div id="groupAssignModal" class="modal-backdrop hidden">
+    <div class="modal-card" style="max-width:540px;">
+      <div class="modal-head">
+        <h3 id="gaModalTitle">編輯群組指派</h3>
+        <button class="btn btn-ghost btn-xs" onclick="closeModal('groupAssignModal')">關閉</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="gaRowIndex">
+        <input type="hidden" id="gaLastActive">
+        <div style="margin-bottom:12px;">
+          <label class="field-label">LINE 群組 ID</label>
+          <input id="gaGroupId" class="input" placeholder="Cxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+        </div>
+        <div class="grid-2" style="margin-bottom:12px;">
+          <div>
+            <label class="field-label">群組名稱</label>
+            <input id="gaName" class="input" placeholder="例：雲林職訓諮詢群組">
+          </div>
+          <div>
+            <label class="field-label">狀態</label>
+            <select id="gaStatus" class="select">
+              <option value="啟用">啟用</option>
+              <option value="停用">停用</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-bottom:12px;">
+          <label class="field-label">指定 Telegram ID（留空將依提問業務自動分派）</label>
+          <input id="gaTelegramIds" class="input" placeholder="純數字 ID，多人逗號分隔">
+        </div>
+        <div>
+          <label class="field-label">備註</label>
+          <input id="gaNote" class="input">
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn" onclick="closeModal('groupAssignModal')">取消</button>
+        <button class="btn btn-primary" onclick="saveGroupAssignUI()">儲存</button>
+      </div>
+    </div>
+  </div>
+
+  
+  <div id="reminderTplModal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3 id="remTplModalTitle">新增提醒規則</h3>
+        <button class="btn btn-ghost btn-xs" onclick="closeModal('reminderTplModal')">關閉</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="rtRowIndex">
+        <input type="hidden" id="rtRuleId">
+
+        <div class="grid-3" style="margin-bottom:12px;">
+          <div>
+            <label class="field-label">業務分區</label>
+            <select id="rtLiffGroup" class="select">
+              <option value="榮民就業">1. 榮民就業</option>
+              <option value="二類就業">2. 二類就業</option>
+              <option value="訓後就業">3. 訓後就業</option>
+              <option value="就學進修">4. 就學進修</option>
+              <option value="就業考試">5. 就業考試</option>
+              <option value="職業訓練">6. 職業訓練</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label">申請種類</label>
+            <input id="rtApplyType" class="input" list="rtApplyTypeList">
+            <datalist id="rtApplyTypeList"></datalist>
+          </div>
+          <div>
+            <label class="field-label">啟用狀態</label>
+            <select id="rtStatus" class="select">
+              <option value="啟用">啟用</option>
+              <option value="停用">停用</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid-3" style="margin-bottom:12px;">
+          <div>
+            <label class="field-label">基準日期欄位</label>
+            <select id="rtBaseDateKey" class="select">
+              <option value="startDate">開訓／考試／到職起日（startDate）</option>
+              <option value="endDate">完訓／結訓／考試迄日（endDate）</option>
+              <option value="regStart">報名起日（regStart）</option>
+              <option value="regEnd">報名迄日（regEnd）</option>
+              <option value="subsidyStart">申請補助開始日（subsidyStart）</option>
+              <option value="subsidyEnd">申請補助截止日（subsidyEnd）</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label">日期顯示名稱</label>
+            <input id="rtDateFieldLabel" class="input">
+          </div>
+          <div>
+            <label class="field-label">階段名稱</label>
+            <input id="rtStageName" class="input" oninput="updateReminderLivePreview()">
+          </div>
+        </div>
+
+        <div class="grid-3" style="margin-bottom:12px;">
+          <div>
+            <label class="field-label">推算模式</label>
+            <select id="rtCalcMode" class="select">
+              <option value="基準日&#43;天數">基準日 + 天數</option>
+              <option value="基準日&#43;月數">基準日 + 月數</option>
+              <option value="基準日&#43;工作日">基準日 + 工作日</option>
+              <option value="職訓第8工作日&#43;偏移工作日">職訓第8工作日 + 偏移工作日</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label">偏移數值</label>
+            <input id="rtOffsetValue" type="number" class="input" value="0">
+          </div>
+          <div>
+            <label class="field-label">截止日推算</label>
+            <input id="rtDeadlineExpr" class="input" placeholder="&#43;14月、&#43;6月、&#43;3月、職訓第8工作日">
+          </div>
+        </div>
+
+        <div class="grid-3" style="margin-bottom:12px;">
+          <div>
+            <label class="field-label">遇假日提前至上班日</label>
+            <select id="rtShiftHoliday" class="select">
+              <option value="是">是</option>
+              <option value="否">否</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label">推播小時</label>
+            <select id="rtSendHour" class="select">
+              <option value="08">08:00</option>
+              <option value="09" selected>09:00</option>
+              <option value="10">10:00</option>
+              <option value="11">11:00</option>
+              <option value="14">14:00</option>
+              <option value="15">15:00</option>
+              <option value="16">16:00</option>
+              <option value="18">18:00</option>
+              <option value="19">19:00</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label">預覽顯示與條件</label>
+            <div style="display:flex;gap:6px;">
+              <select id="rtShowInPreview" class="select">
+                <option value="是">預覽顯示</option>
+                <option value="否">預覽隱藏</option>
+              </select>
+              <select id="rtCondition" class="select">
+                <option value="全部">全部適用</option>
+                <option value="僅全日制">僅全日制</option>
+                <option value="僅非全日制">僅非全日制</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-2" style="margin-bottom:12px;">
+          <div>
+            <label class="field-label">卡片標題</label>
+            <input id="rtCardTitle" class="input" oninput="updateReminderLivePreview()">
+          </div>
+          <div>
+            <label class="field-label">輸入框範例</label>
+            <input id="rtNoteExample" class="input">
+          </div>
+        </div>
+
+        <div style="margin-bottom:10px;">
+          <label class="field-label">提醒文案（點下方標籤插入動態欄位）</label>
+          <div class="emoji-bar" style="margin-bottom:6px;">
+            <button type="button" class="var-chip" onclick="insertReminderVar('{稱呼}')">{稱呼}</button>
+            <button type="button" class="var-chip" onclick="insertReminderVar('{姓名}')">{姓名}</button>
+            <button type="button" class="var-chip" onclick="insertReminderVar('{申請種類}')">{申請種類}</button>
+            <button type="button" class="var-chip" onclick="insertReminderVar('{基準日}')">{基準日}</button>
+            <button type="button" class="var-chip" onclick="insertReminderVar('{截止日}')">{截止日}</button>
+            <button type="button" class="var-chip" onclick="insertReminderVar('{備註}')">{備註}</button>
+            <button type="button" class="var-chip" onclick="insertReminderVar('{階段}')">{階段}</button>
+          </div>
+          <textarea id="rtMessageTemplate" class="textarea" style="min-height:110px;" oninput="updateReminderLivePreview()"></textarea>
+        </div>
+
+        <div class="grid-2">
+          <div>
+            <label class="field-label">附掛連結按鈕（每行一組：按鈕文字|網址）</label>
+            <textarea id="rtButtonsRaw" class="textarea" style="min-height:86px;" oninput="updateReminderLivePreview()"></textarea>
+          </div>
+          <div>
+            <label class="field-label">即時預覽</label>
+            <div id="rtLivePreview" class="flex-preview-card" style="min-height:86px;white-space:pre-wrap;font-size:12.5px;"></div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn" onclick="closeModal('reminderTplModal')">取消</button>
+        <button class="btn btn-primary" onclick="saveReminderTplUI()">儲存規則</button>
+      </div>
+    </div>
+  </div>
+
+  
+  <div id="officialScheduleModal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3>Gemini 解析職訓簡章／期日表匯入</h3>
+        <button class="btn btn-ghost btn-xs" onclick="closeModal('officialScheduleModal')">關閉</button>
+      </div>
+      <div class="modal-body">
+        <div class="grid-2" style="margin-bottom:12px;">
+          <div>
+            <label class="field-label">資料來源</label>
+            <select id="schModalSourceType" class="select" onchange="syncScheduleTargetType()">
+              <option value="職訓中心自辦課程">職訓中心自辦課程</option>
+              <option value="退輔會委辦班隊">退輔會委辦班隊（職訓）</option>
+              <option value="退輔會委辦就學班隊">退輔會委辦就學班隊（正式學籍）</option>
+              <option value="考試院考試期日表">考試院考試期日表</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label">對應業務</label>
+            <select id="schModalApplyType" class="select">
+              <option value="職訓中心自辦/委外課程">職訓中心自辦/委外課程</option>
+              <option value="就讀正式學籍（未就讀）">就讀正式學籍（未就讀）</option>
+              <option value="就業考試補助">就業考試補助</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid-2" style="margin-bottom:10px;">
+          <div>
+            <label class="field-label">上傳簡章 PDF 或圖片（限 12 MB）</label>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <button type="button" class="btn btn-sm" onclick="pickScheduleDocFile()">選擇檔案</button>
+              <span id="schDocFileName" class="hint" style="margin:0;">未選擇檔案</span>
+            </div>
+          </div>
+          <div>
+            <label class="field-label">或貼上簡章網址（選填）</label>
+            <input id="schModalUrl" class="input" placeholder="https://...">
+          </div>
+        </div>
+
+        <div style="margin-bottom:12px;">
+          <label class="field-label">或直接貼上文字</label>
+          <textarea id="schModalRawText" class="textarea" style="min-height:90px;"></textarea>
+        </div>
+
+        <div class="toolbar-group" style="margin-bottom:14px;">
+          <button type="button" class="btn btn-primary btn-sm" onclick="runAiParseOfficialSchedulesUI()">開始解析日期</button>
+          <span class="hint" style="margin:0;">自動換算民國年，並判斷職訓課程是否為全日制。</span>
+        </div>
+
+        <div id="schPreviewWrap" class="hidden">
+          <div class="info-bar ok"><span id="schPreviewInfo"></span></div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:36px;">選取</th>
+                  <th>名稱</th>
+                  <th>報名起日</th>
+                  <th>報名迄日</th>
+                  <th>開訓／考試起</th>
+                  <th>完訓／考試迄</th>
+                  <th>全日制</th>
+                </tr>
+              </thead>
+              <tbody id="schPreviewBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn" onclick="closeModal('officialScheduleModal')">關閉</button>
+        <button id="schBatchSaveBtn" class="btn btn-primary hidden" onclick="saveParsedOfficialSchedulesUI()">匯入勾選項目</button>
+      </div>
+    </div>
+  </div>
+
+
 <script>
-  // ==========================================
-  // 狀態與設定常數（沿用既有 Key 保留 90 天登入與星號釘選）
-  // ==========================================
+  
+  
+  
   const STORAGE_AUTH_KEY = 'YUNLIN_LINE_FAQ_AUTH_V29';
   const STORAGE_PIN_KEY = 'YUNLIN_LINE_FAQ_PINS_V29';
   const STORAGE_OWNER_KEY = 'YUNLIN_LINE_FAQ_OWNER_V61';
@@ -21,7 +1911,7 @@
     '職業訓練': '訓練單位（選填）'
   };
 
-  // 三大承辦業務分工設定
+  
   const OWNER_PROFILES = {
     VETERAN_EMP: {
       label: '榮民就業 ＆ 訓後就業',
@@ -49,7 +1939,7 @@
     }
   };
 
-  // 各分頁專屬極簡操作說明（點導覽列 ? 圖示顯示）
+  
   const TAB_HELP_CONTENT = {
     daytime: {
       title: '常用回覆｜操作說明',
@@ -109,7 +1999,7 @@
     healthReport: [],
     groupAssignments: [],
     groupDrafts: [],
-    // 定時提醒、官方期程、手動提醒排程與手動名單來源
+    
     reminderLoaded: false,
     manualLoaded: false,
     reminderTemplates: [],
@@ -145,9 +2035,9 @@
     draftTimer: null
   };
 
-  // ==========================================
-  // 業務分工判斷與連動篩選
-  // ==========================================
+  
+  
+  
   function loadSavedOwnerProfile() {
     try {
       const saved = localStorage.getItem(STORAGE_OWNER_KEY);
@@ -266,9 +2156,9 @@
     showToast('已切換業務視角：' + getActiveOwnerCfg().label, 'ok');
   }
 
-  // ==========================================
-  // ? 情境說明視窗（依目前所在分頁顯示精簡說明）
-  // ==========================================
+  
+  
+  
   function openHelpModal() {
     const info = TAB_HELP_CONTENT[state.activeTab] || TAB_HELP_CONTENT.daytime;
     document.getElementById('helpModalTitle').textContent = info.title;
@@ -279,9 +2169,9 @@
     document.getElementById('helpModal').classList.remove('hidden');
   }
 
-  // ==========================================
-  // 初始化與登入管理
-  // ==========================================
+  
+  
+  
   window.addEventListener('DOMContentLoaded', function () {
     initEmojiBars();
     loadPinnedKeys();
@@ -563,9 +2453,9 @@
     }
   }
 
-  // ==========================================
-  // 工具函式
-  // ==========================================
+  
+  
+  
   function isFlexTag(str) { return String(str || '').trim() === FLEX_TAG_TRAINING_CALC; }
 
   function isAudioUrl(str) {
@@ -682,9 +2572,9 @@
 
   function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
 
-  // ==========================================
-  // Tab 1A（左欄）: 手動提醒排程（支援讀取 手動名單_* 補填＋移除）
-  // ==========================================
+  
+  
+  
   function refreshManualRemindersUI(showSpinner) {
     if (showSpinner) setLoading(true, '讀取手動提醒名單...');
     const badge = document.getElementById('dayManualDueBadge');
@@ -905,7 +2795,7 @@
       .apiDeleteManualReminder(state.token, item.rowIndex, false, item.caseId);
   }
 
-  // --- Modal 7：新增手動提醒（讀取 手動名單_* 分頁補填缺漏 ＋ 自由移除階段） ---
+  
   function buildMcSemesterOptions() {
     const sel = document.getElementById('mcSemesterSelect');
     if (!sel) return;
@@ -1305,7 +3195,7 @@
       });
   }
 
-  // --- Modal 8：編輯單筆手動提醒排程與文案 ---
+  
   function openManualEditModal(item) {
     document.getElementById('meRowIndex').value = item.rowIndex;
     document.getElementById('meCaseId').value = item.caseId || '';
@@ -1370,9 +3260,9 @@
       .apiDeleteManualReminder(state.token, rowIndex, !!deleteWholeCase, caseId);
   }
 
-  // ==========================================
-  // Tab 1B（右欄）: 常用回覆快速複製
-  // ==========================================
+  
+  
+  
   function renderDayCatPills() {
     const wrap = document.getElementById('dayCatPills');
     wrap.innerHTML = '';
@@ -1613,9 +3503,9 @@
     });
   }
 
-  // ==========================================
-  // Tab 2: AI 幫寫草稿 ＆ 管理者群組指派
-  // ==========================================
+  
+  
+  
   function renderAssistTab() {
     const bar = document.getElementById('assistStatusBar');
     if (bar) {
@@ -1912,9 +3802,9 @@
       .apiSendTestTelegram(state.token, targetIds);
   }
 
-  // ==========================================
-  // Tab 3（自動提醒管理：左「提醒文案排程管理」／右「已綁定自動提醒名單」）
-  // ==========================================
+  
+  
+  
   function loadReminderData(showToastMsg) {
     setLoading(true, '載入自動提醒文案與名單...');
     google.script.run
@@ -2573,9 +4463,9 @@
       .apiUpdateReminderRecordStatus(state.token, rec.rowIndex, newStatus);
   }
 
-  // ==========================================
-  // Tab 4: 問答管理（預設依負責業務篩選，保留全部業務選項）
-  // ==========================================
+  
+  
+  
   function renderManageSelectors() {
     const sel = document.getElementById('mgrCatSelect');
     const prev = sel.value;
@@ -2728,9 +4618,9 @@
     });
   }
 
-  // ==========================================
-  // Modal 1: 新增／編輯問答
-  // ==========================================
+  
+  
+  
   function openFaqModal(item) {
     const catSel = document.getElementById('editCategory');
     catSel.innerHTML = '';
@@ -2872,9 +4762,9 @@
       .apiDeleteFaq(state.token, item.category, item.rowIndex);
   }
 
-  // ==========================================
-  // GitHub 媒體上傳與 AI 輔助
-  // ==========================================
+  
+  
+  
   function pickImageForSlot(slotIdx) {
     if (!state.hasGithubConfig) { showToast('尚未設定 GitHub 空間', 'err'); return; }
     state.pendingSlotIdx = slotIdx;
@@ -3145,9 +5035,9 @@
       .apiBatchSaveFaqs(state.token, document.getElementById('batchCat').value, selected, document.getElementById('batchStatus').value);
   }
 
-  // ==========================================
-  // ⚙️ 管理者：健檢、連線診斷與系統設定
-  // ==========================================
+  
+  
+  
   function renderHealthTable() {
     const sum = document.getElementById('healthSummary');
     const tbody = document.getElementById('healthTableBody');
@@ -3478,4 +5368,3 @@
 </script>
 </body>
 </html>
-<!-- =====【admin/index.html 完整版結束】===== -->
