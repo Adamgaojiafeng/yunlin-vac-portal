@@ -1,0 +1,3481 @@
+<!-- =====【admin/index.html 後半段 2/2 開始】===== -->
+<script>
+  // ==========================================
+  // 狀態與設定常數（沿用既有 Key 保留 90 天登入與星號釘選）
+  // ==========================================
+  const STORAGE_AUTH_KEY = 'YUNLIN_LINE_FAQ_AUTH_V29';
+  const STORAGE_PIN_KEY = 'YUNLIN_LINE_FAQ_PINS_V29';
+  const STORAGE_OWNER_KEY = 'YUNLIN_LINE_FAQ_OWNER_V61';
+  const AUTH_TTL_MS = 90 * 24 * 60 * 60 * 1000;
+  const FLEX_TAG_TRAINING_CALC = '[FLEX:CALC_TRAINING_DEADLINE]';
+  const FLEX_CALC_GUIDE_TEXT = '您可直接在本官方 LINE 輸入「備案日試算」，點選小日曆即可自動幫您計算開訓前第 8 個工作日（最晚申請備案日）。';
+
+  const PUBLIC_EMOJIS = ['📌', '📢', '📞', '📅', '✅', '⚠️', '🔗', '📍', '💡', '📋', '🏫', '🎓', '💰', '📝', '🧾', '📮', '🛠️', '😊'];
+
+  const GROUP_NOTE_LABELS = {
+    '榮民就業': '入職單位（選填）',
+    '二類就業': '入職單位（選填）',
+    '訓後就業': '入職單位（選填）',
+    '就學進修': '就讀學校（選填）',
+    '就業考試': '考試名稱（選填）',
+    '職業訓練': '訓練單位（選填）'
+  };
+
+  // 三大承辦業務分工設定
+  const OWNER_PROFILES = {
+    VETERAN_EMP: {
+      label: '榮民就業 ＆ 訓後就業',
+      liffGroups: ['榮民就業', '訓後就業'],
+      faqCats: ['就業服務', '共通規定'],
+      draftTag: '榮民就業＆訓後就業'
+    },
+    CLASS2_CPAS: {
+      label: '二類就業 ＆ CPAS 適性評量',
+      liffGroups: ['二類就業'],
+      faqCats: ['就業服務', '共通規定'],
+      draftTag: '二類就業＆CPAS適性評量'
+    },
+    TRAIN_EDU_EXAM: {
+      label: '職訓、就學進修 ＆ 考試',
+      liffGroups: ['職業訓練', '就學進修', '就業考試'],
+      faqCats: ['職業訓練', '就學補助', '考試補助', '共通規定'],
+      draftTag: '職訓、就學進修＆考試'
+    },
+    ALL: {
+      label: '全部業務',
+      liffGroups: ['榮民就業', '二類就業', '訓後就業', '就學進修', '就業考試', '職業訓練'],
+      faqCats: null,
+      draftTag: ''
+    }
+  };
+
+  // 各分頁專屬極簡操作說明（點導覽列 ? 圖示顯示）
+  const TAB_HELP_CONTENT = {
+    daytime: {
+      title: '常用回覆｜操作說明',
+      items: [
+        '<strong>最上方連結列</strong>：點「複製連結」傳給民眾，對方填寫後就會在期限前自動收到 LINE 提醒。',
+        '<strong>左欄「手動提醒排程」</strong>：針對不想綁定自動提醒的申請人，點「新增手動提醒」可直接帶入「手動名單_*」補填缺漏日期，或手動建檔套用排程與文案；時間到按「複製訊息」貼到旁邊的官方 LINE，傳完點「已傳送」，不需要的階段隨時可點「移除」。',
+        '<strong>右欄「常用回覆」</strong>：預設只顯示您負責業務的問答，輸入關鍵字篩選後按「複製文字」即可貼回 LINE（可直接微調文字再複製）。'
+      ]
+    },
+    assist: {
+      title: 'AI 幫寫草稿｜操作說明',
+      items: [
+        '<strong>貼題擬稿</strong>：將民眾在 LINE 詢問的文字直接貼入上方欄位並點「產出回覆草稿」，系統會先自動遮蔽個資，再依本處規定產出可直接貼上的草稿。',
+        '<strong>自動分派承辦人</strong>：勾選同步推播時，系統會依提問內容自動判斷業務，只通知對應的承辦人。',
+        '<strong>近期草稿紀錄</strong>：預設篩選您的負責業務，可隨時改選「全部業務紀錄」查詢職代案件。'
+      ]
+    },
+    reminder: {
+      title: '自動提醒管理｜操作說明',
+      items: [
+        '<strong>左欄「提醒文案排程管理」</strong>：管理各業務提醒時間點與文案範本，修改後會同時套用至「自動推播」與「手動提醒排程」；點「複製新增」可快速增加新階段。',
+        '<strong>右欄「已綁定自動提醒名單」</strong>：檢視已完成 LINE 登記的民眾排程，預設篩選您的負責業務，可手動補發或取消單筆提醒。'
+      ]
+    },
+    manage: {
+      title: '問答管理｜操作說明',
+      items: [
+        '<strong>預設篩選</strong>：列表會先依您的負責業務篩選，也可切換下拉選單查看其他分類。',
+        '<strong>新增與編輯</strong>：點「新增問答」可建立文字、圖片、語音或職訓備案試算卡；也可使用「AI 批次建表」從簡章或公文快速拆解多筆問答。'
+      ]
+    },
+    settings: {
+      title: '管理者設定中心｜操作說明',
+      items: [
+        '<strong>基本與 Telegram 分派</strong>：設定三位承辦人各自的 Telegram 數字 ID，以及上下班時段與國定假日表。',
+        '<strong>推播排程與 LIFF 參數</strong>：檢視每月 Push 額度、啟用每小時自動掃描排程與設定 LIFF 網址。',
+        '<strong>官方簡章匯入</strong>：上傳 PDF 或截圖讓 Gemini 自動解析班隊與考試日期，供登記頁與手動提醒快速帶入。',
+        '<strong>健檢與連線診斷</strong>：檢查全站官網網址有效性與 LINE Webhook 連線狀態。'
+      ]
+    }
+  };
+
+  const state = {
+    token: '',
+    role: 'staff',
+    ownerProfile: 'VETERAN_EMP',
+    hasGeminiKey: false,
+    activeGeminiModel: '',
+    hasTelegramConfig: false,
+    hasGithubConfig: false,
+    githubRepo: '',
+    defaultAiSystemContext: '',
+    settings: {},
+    holidays: [],
+    categories: [],
+    faqs: [],
+    healthReport: [],
+    groupAssignments: [],
+    groupDrafts: [],
+    // 定時提醒、官方期程、手動提醒排程與手動名單來源
+    reminderLoaded: false,
+    manualLoaded: false,
+    reminderTemplates: [],
+    businessTypes: [],
+    reminderOfficialSchedules: [],
+    reminderRecords: [],
+    manualReminders: [],
+    manualSourceRows: [],
+    mcDraftStages: [],
+    mcPreviewTimer: null,
+    mcPreviewSeq: 0,
+    reminderPushStats: { yearMonth: '', used: 0, limit: 200, remain: 200, percent: 0 },
+    reminderTriggerInstalled: false,
+    reminderLiffUrl: '',
+    reminderLiffChannelIdSet: false,
+    reminderOaChatUrl: 'https://chat.line.biz/',
+    schDocBase64: '',
+    schDocMimeType: '',
+    schParsedItems: [],
+    activeTab: 'daytime',
+    settingsSubTab: 'sys',
+    dayCat: 'MY_SCOPE',
+    dayOnlyPinned: false,
+    dayExpandAll: false,
+    pinnedKeys: new Set(),
+    lastFocusedTextarea: null,
+    pendingMediaMode: 'image',
+    pendingSlotIdx: null,
+    pendingAiSlotIdx: null,
+    batchAudioB64: '',
+    batchAudioMime: 'audio/mp4',
+    batchItems: [],
+    draftTimer: null
+  };
+
+  // ==========================================
+  // 業務分工判斷與連動篩選
+  // ==========================================
+  function loadSavedOwnerProfile() {
+    try {
+      const saved = localStorage.getItem(STORAGE_OWNER_KEY);
+      if (saved && OWNER_PROFILES[saved]) return saved;
+    } catch (e) {}
+    return 'VETERAN_EMP';
+  }
+
+  function saveOwnerProfile(profileKey) {
+    const key = OWNER_PROFILES[profileKey] ? profileKey : 'ALL';
+    state.ownerProfile = key;
+    try { localStorage.setItem(STORAGE_OWNER_KEY, key); } catch (e) {}
+    const loginSel = document.getElementById('loginOwnerProfile');
+    const topSel = document.getElementById('topOwnerSelect');
+    if (loginSel) loginSel.value = key;
+    if (topSel) topSel.value = key;
+  }
+
+  function getActiveOwnerCfg() {
+    return OWNER_PROFILES[state.ownerProfile] || OWNER_PROFILES.ALL;
+  }
+
+  function isCpasFaqItem(item) {
+    const kw = String((item && item.keywords) || '').toLowerCase();
+    const m1 = String((item && item.msgs && item.msgs[0]) || '').toLowerCase();
+    return (kw.indexOf('適性評量') !== -1 || kw.indexOf('cpass') !== -1 || kw.indexOf('cpas') !== -1 || m1.indexOf('cpass-application') !== -1);
+  }
+
+  function matchesOwnerFaq(item) {
+    const pk = state.ownerProfile;
+    if (pk === 'ALL') return true;
+    const cfg = getActiveOwnerCfg();
+    if (cfg.faqCats && cfg.faqCats.indexOf(item.category) === -1) return false;
+    if (pk === 'VETERAN_EMP' && item.category === '就業服務' && isCpasFaqItem(item)) return false;
+    return true;
+  }
+
+  function matchesOwnerApplyType(applyType, liffGroup) {
+    const pk = state.ownerProfile;
+    if (pk === 'ALL') return true;
+    const grp = String(liffGroup || '').trim();
+    if (grp) return matchesOwnerLiffGroup(grp);
+
+    const tp = String(applyType || '');
+    if (pk === 'VETERAN_EMP') {
+      return tp.indexOf('榮民就業') !== -1 || tp.indexOf('訓後就業') !== -1;
+    }
+    if (pk === 'CLASS2_CPAS') {
+      return tp.indexOf('二類就業') !== -1 || tp.indexOf('適性評量') !== -1 || tp.indexOf('CPAS') !== -1;
+    }
+    if (pk === 'TRAIN_EDU_EXAM') {
+      if (tp === '訓後就業') return false;
+      return tp.indexOf('職訓') !== -1 || tp.indexOf('就學') !== -1 || tp.indexOf('進修') !== -1 || tp.indexOf('考試') !== -1;
+    }
+    return true;
+  }
+
+  function matchesOwnerLiffGroup(liffGroup) {
+    const pk = state.ownerProfile;
+    if (pk === 'ALL') return true;
+    const cfg = getActiveOwnerCfg();
+    return cfg.liffGroups.indexOf(String(liffGroup || '').trim()) !== -1;
+  }
+
+  function matchesOwnerDraft(draft) {
+    const pk = state.ownerProfile;
+    if (pk === 'ALL') return true;
+    const cfg = getActiveOwnerCfg();
+    const rec = String((draft && draft.recipients) || '');
+    const src = String((draft && draft.draftSource) || '');
+
+    if (cfg.draftTag && rec.indexOf(cfg.draftTag) !== -1) return true;
+    if (rec.indexOf('共通') !== -1) return true;
+    if (rec.indexOf('榮民就業＆訓後就業') !== -1 || rec.indexOf('二類就業＆CPAS') !== -1 || rec.indexOf('職訓、就學進修＆考試') !== -1) {
+      return false;
+    }
+
+    const text = (src + ' ' + String((draft && draft.maskedQuestion) || '')).toLowerCase();
+    if (pk === 'TRAIN_EDU_EXAM') return /職訓|就學|進修|考試|補習|學分班|備案/.test(text);
+    if (pk === 'CLASS2_CPAS') return /二類|cpas|cpass|適性評量/.test(text);
+    if (pk === 'VETERAN_EMP') return /就業|津貼|介紹卡|訓後|求職/.test(text) && !/二類|cpas|適性評量/.test(text);
+    return true;
+  }
+
+  function syncScopeSelectorsToOwner() {
+    const isAll = state.ownerProfile === 'ALL';
+    const defVal = isAll ? 'ALL' : 'MY_SCOPE';
+    state.dayCat = defVal;
+
+    ['manualScopeFilter', 'draftScopeFilter', 'remTplGroupFilter', 'remRecScopeFilter', 'mcSourceFilter'].forEach(function (id) {
+      const el = document.getElementById(id);
+      if (el) el.value = defVal;
+    });
+
+    const mgrSel = document.getElementById('mgrCatSelect');
+    if (mgrSel && mgrSel.options.length > 0) {
+      mgrSel.value = defVal;
+    }
+  }
+
+  function onOwnerProfileChanged(newKey) {
+    saveOwnerProfile(newKey);
+    syncScopeSelectorsToOwner();
+
+    renderDayCatPills();
+    renderDaytimeList();
+    renderManualReminders();
+    renderDraftBoardList();
+    renderManageSelectors();
+    renderManageList();
+    if (state.reminderLoaded) {
+      renderReminderTypeFilter();
+      renderReminderTemplates();
+      renderReminderRecords();
+    }
+    showToast('已切換業務視角：' + getActiveOwnerCfg().label, 'ok');
+  }
+
+  // ==========================================
+  // ? 情境說明視窗（依目前所在分頁顯示精簡說明）
+  // ==========================================
+  function openHelpModal() {
+    const info = TAB_HELP_CONTENT[state.activeTab] || TAB_HELP_CONTENT.daytime;
+    document.getElementById('helpModalTitle').textContent = info.title;
+    document.getElementById('helpModalBody').innerHTML =
+      '<ol class="help-list">' +
+        info.items.map(function (line) { return '<li>' + line + '</li>'; }).join('') +
+      '</ol>';
+    document.getElementById('helpModal').classList.remove('hidden');
+  }
+
+  // ==========================================
+  // 初始化與登入管理
+  // ==========================================
+  window.addEventListener('DOMContentLoaded', function () {
+    initEmojiBars();
+    loadPinnedKeys();
+    saveOwnerProfile(loadSavedOwnerProfile());
+    buildMcSemesterOptions();
+
+    document.getElementById('passcodeInput').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') doLogin();
+    });
+
+    document.getElementById('hiddenImgInput').addEventListener('change', handleImageFilePicked);
+    document.getElementById('hiddenAudioInput').addEventListener('change', handleAudioFilePicked);
+    document.getElementById('hiddenAiAudioInput').addEventListener('change', handleAiAudioFilePicked);
+    document.getElementById('hiddenIcsInput').addEventListener('change', handleIcsFilePicked);
+    document.getElementById('hiddenScheduleDocInput').addEventListener('change', handleScheduleDocFilePicked);
+
+    tryAutoLogin();
+  });
+
+  function initEmojiBars() {
+    const dayWrap = document.getElementById('dayEmojiBtns');
+    const modalWrap = document.getElementById('modalEmojiBtns');
+    dayWrap.innerHTML = '';
+    modalWrap.innerHTML = '';
+    PUBLIC_EMOJIS.forEach(function (em) {
+      const b1 = document.createElement('button');
+      b1.type = 'button';
+      b1.className = 'emoji-btn';
+      b1.textContent = em;
+      b1.onclick = function () { insertEmojiToFocused(em); };
+      dayWrap.appendChild(b1);
+
+      const b2 = document.createElement('button');
+      b2.type = 'button';
+      b2.className = 'emoji-btn';
+      b2.textContent = em;
+      b2.onclick = function () { insertEmojiToFocused(em); };
+      modalWrap.appendChild(b2);
+    });
+  }
+
+  function toggleEmojiBar(wrapId, btnEl) {
+    const wrap = document.getElementById(wrapId);
+    if (!wrap) return;
+    const isNowHidden = wrap.classList.toggle('hidden');
+    if (btnEl) {
+      btnEl.classList.toggle('btn-soft', !isNowHidden);
+      btnEl.textContent = isNowHidden ? '插入符號' : '收合符號';
+    }
+  }
+
+  function insertEmojiToFocused(emoji) {
+    const el = state.lastFocusedTextarea;
+    if (!el || !document.body.contains(el)) {
+      copyTextValue(emoji, '已複製符號 ' + emoji + '（先點選文字框可直接插入游標處）');
+      return;
+    }
+    const start = el.selectionStart || 0;
+    const end = el.selectionEnd || 0;
+    const val = el.value || '';
+    el.value = val.slice(0, start) + emoji + val.slice(end);
+    el.focus();
+    el.selectionStart = el.selectionEnd = start + emoji.length;
+    el.dispatchEvent(new Event('input'));
+  }
+
+  function loadPinnedKeys() {
+    try {
+      const raw = localStorage.getItem(STORAGE_PIN_KEY);
+      if (raw) {
+        const arr = JSON.parse(raw);
+        if (Array.isArray(arr)) state.pinnedKeys = new Set(arr);
+      }
+    } catch (e) {}
+  }
+
+  function savePinnedKeys() {
+    try {
+      localStorage.setItem(STORAGE_PIN_KEY, JSON.stringify(Array.from(state.pinnedKeys)));
+    } catch (e) {}
+  }
+
+  function tryAutoLogin() {
+    let saved = null;
+    try {
+      const raw = localStorage.getItem(STORAGE_AUTH_KEY);
+      if (raw) saved = JSON.parse(raw);
+    } catch (e) {}
+
+    if (saved && saved.token && saved.expiresAt > Date.now()) {
+      if (saved.ownerProfile && OWNER_PROFILES[saved.ownerProfile]) {
+        saveOwnerProfile(saved.ownerProfile);
+      }
+      setLoading(true, '正在驗證登入狀態...');
+      google.script.run
+        .withSuccessHandler(function (res) {
+          if (res && res.ok) {
+            state.token = saved.token;
+            state.role = res.role || saved.role || 'staff';
+            enterApp();
+          } else {
+            clearSavedAuth();
+            setLoading(false);
+          }
+        })
+        .withFailureHandler(function () { setLoading(false); })
+        .apiVerifySession(saved.token);
+    }
+  }
+
+  function doLogin() {
+    const pwd = (document.getElementById('passcodeInput').value || '').trim();
+    const chosenOwner = document.getElementById('loginOwnerProfile').value || 'ALL';
+    const errEl = document.getElementById('loginError');
+    errEl.textContent = '';
+    if (!pwd) { errEl.textContent = '請輸入密碼'; return; }
+
+    saveOwnerProfile(chosenOwner);
+    setLoading(true, '驗證密碼中...');
+    google.script.run
+      .withSuccessHandler(function (res) {
+        if (res && res.ok) {
+          state.token = res.token;
+          state.role = res.role;
+          if (document.getElementById('rememberLogin').checked) {
+            try {
+              localStorage.setItem(STORAGE_AUTH_KEY, JSON.stringify({
+                token: res.token,
+                role: res.role,
+                ownerProfile: chosenOwner,
+                expiresAt: Date.now() + AUTH_TTL_MS
+              }));
+            } catch (e) {}
+          }
+          document.getElementById('passcodeInput').value = '';
+          enterApp();
+        } else {
+          setLoading(false);
+          errEl.textContent = (res && res.message) || '密碼錯誤，請再試一次。';
+        }
+      })
+      .withFailureHandler(function (err) {
+        setLoading(false);
+        errEl.textContent = '連線異常：' + (err.message || err);
+      })
+      .apiLogin(pwd);
+  }
+
+  function doLogout(expired) {
+    stopDraftAutoRefresh();
+    clearSavedAuth();
+    state.token = '';
+    state.reminderLoaded = false;
+    state.manualLoaded = false;
+    document.getElementById('appView').classList.add('hidden');
+    document.getElementById('loginView').classList.remove('hidden');
+    if (expired) {
+      document.getElementById('loginError').textContent = '登入憑證已逾期，請重新登入。';
+    }
+  }
+
+  function clearSavedAuth() {
+    try { localStorage.removeItem(STORAGE_AUTH_KEY); } catch (e) {}
+  }
+
+  function enterApp() {
+    const isAdmin = state.role === 'admin';
+    document.getElementById('loginView').classList.add('hidden');
+    document.getElementById('appView').classList.remove('hidden');
+    document.getElementById('roleBadge').textContent = isAdmin ? '管理者' : '同仁';
+
+    document.getElementById('navSettingsBtn').classList.toggle('hidden', !isAdmin);
+    document.getElementById('clearDraftsBtn').classList.toggle('hidden', !isAdmin);
+
+    document.getElementById('topOwnerSelect').value = state.ownerProfile;
+    syncScopeSelectorsToOwner();
+
+    switchTab('daytime');
+    loadAllData(false);
+  }
+
+  function loadAllData(showToastMsg) {
+    setLoading(true, '載入資料中...');
+    google.script.run
+      .withSuccessHandler(function (res) {
+        setLoading(false);
+        if (!res || res.authError) { doLogout(true); return; }
+        state.role = res.role;
+        state.hasGeminiKey = !!res.hasGeminiKey;
+        state.activeGeminiModel = res.activeGeminiModel || '';
+        state.hasTelegramConfig = !!res.hasTelegramConfig;
+        state.hasGithubConfig = !!res.hasGithubConfig;
+        state.githubRepo = res.githubRepo || '';
+        state.defaultAiSystemContext = res.defaultAiSystemContext || '';
+        state.settings = res.settings || {};
+        state.holidays = res.holidays || [];
+        state.categories = res.categories || [];
+        state.faqs = res.faqs || [];
+        state.healthReport = res.healthReport || [];
+        state.groupAssignments = res.groupAssignments || [];
+        state.groupDrafts = res.groupDrafts || [];
+        if (state.settings.oaChatUrl) state.reminderOaChatUrl = state.settings.oaChatUrl;
+
+        state.reminderLiffUrl = String(state.settings.liffUrl || '').trim();
+        document.getElementById('remLiffUrlDisplay').value = state.reminderLiffUrl;
+
+        refreshAllViews();
+        refreshManualRemindersUI(false);
+
+        if (state.activeTab === 'reminder' || state.reminderLoaded) {
+          loadReminderData(false);
+        }
+        if (showToastMsg) showToast('資料已更新', 'ok');
+      })
+      .withFailureHandler(function (err) {
+        setLoading(false);
+        showToast('同步失敗：' + (err.message || err), 'err');
+      })
+      .apiGetAllData(state.token);
+  }
+
+  function canEditNow() {
+    if (state.role === 'admin') return true;
+    return String(state.settings.allowStaffEdit).toLowerCase() !== 'false';
+  }
+
+  function switchTab(tabName) {
+    if (tabName === 'settings' && state.role !== 'admin') return;
+    state.activeTab = tabName;
+    document.querySelectorAll('.nav-btn[data-tab]').forEach(function (btn) {
+      btn.classList.toggle('active', btn.getAttribute('data-tab') === tabName);
+    });
+    document.querySelectorAll('.tab-section').forEach(function (sec) {
+      sec.classList.add('hidden');
+    });
+    const target = document.getElementById('tab-' + tabName);
+    if (target) target.classList.remove('hidden');
+
+    if (tabName === 'assist') renderAssistTab();
+    if (tabName === 'reminder') loadReminderData(false);
+    if (tabName === 'settings') switchSettingsSubTab(state.settingsSubTab || 'sys');
+  }
+
+  function switchSettingsSubTab(subName) {
+    if (state.role !== 'admin') return;
+    state.settingsSubTab = subName;
+
+    ['sys', 'rem', 'sch', 'tg', 'health'].forEach(function (k) {
+      const btn = document.getElementById('subBtn-' + k);
+      const sec = document.getElementById('subtab-' + k);
+      if (btn) btn.classList.toggle('active', k === subName);
+      if (sec) sec.classList.toggle('hidden', k !== subName);
+    });
+
+    if (subName === 'sys') renderSettingsView();
+    if (subName === 'rem' || subName === 'sch') {
+      if (!state.reminderLoaded) loadReminderData(false);
+      else {
+        renderReminderDashboard();
+        renderOfficialSchedulesTable();
+      }
+    }
+    if (subName === 'tg') renderAssistTab();
+    if (subName === 'health') {
+      renderHealthTable();
+      loadWebhookDiag();
+    }
+  }
+
+  function refreshAllViews() {
+    renderDayCatPills();
+    renderDaytimeList();
+    renderAssistTab();
+    renderManageSelectors();
+    renderManageList();
+    renderHealthTable();
+    if (state.role === 'admin') {
+      renderSettingsView();
+    }
+  }
+
+  // ==========================================
+  // 工具函式
+  // ==========================================
+  function isFlexTag(str) { return String(str || '').trim() === FLEX_TAG_TRAINING_CALC; }
+
+  function isAudioUrl(str) {
+    const s = String(str || '').trim();
+    if (!/^https:\/\//i.test(s) || /\s/.test(s)) return false;
+    return /\.m4a(\?[^#]*)?(#.*)?$/i.test(s);
+  }
+
+  function isImageUrl(str) {
+    const s = String(str || '').trim();
+    if (!/^https:\/\//i.test(s) || /\s/.test(s)) return false;
+    if (isAudioUrl(s)) return false;
+    if (/lh3\.googleusercontent\.com\/d\//i.test(s)) return true;
+    return /\.(jpg|jpeg|png|gif|webp)(\?[^#]*)?(#.*)?$/i.test(s);
+  }
+
+  function stripHash(url) { return String(url || '').trim().replace(/#.*$/, ''); }
+
+  function escapeHtml(str) {
+    return String(str || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function getFaqKey(item) { return item.category + '::' + item.rowIndex; }
+
+  function setLoading(show, text) {
+    document.getElementById('loadingText').textContent = text || '處理中，請稍候...';
+    document.getElementById('loadingMask').classList.toggle('hidden', !show);
+  }
+
+  function showToast(msg, type) {
+    const box = document.getElementById('toastBox');
+    const div = document.createElement('div');
+    div.className = 'toast ' + (type || '');
+    div.textContent = msg;
+    box.appendChild(div);
+    setTimeout(function () {
+      div.style.opacity = '0';
+      setTimeout(function () { if (div.parentNode) div.parentNode.removeChild(div); }, 250);
+    }, 3000);
+  }
+
+  function copyTextValue(text, successMsg) {
+    const val = String(text || '');
+    if (!val) { showToast('內容為空，無法複製', 'err'); return; }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(val).then(function () {
+        showToast(successMsg || '已複製', 'ok');
+      }).catch(function () { fallbackCopyText(val, successMsg); });
+    } else {
+      fallbackCopyText(val, successMsg);
+    }
+  }
+
+  function fallbackCopyText(val, successMsg) {
+    const ta = document.createElement('textarea');
+    ta.value = val;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      document.execCommand('copy');
+      showToast(successMsg || '已複製', 'ok');
+    } catch (e) {
+      showToast('請手動全選複製', 'err');
+    }
+    document.body.removeChild(ta);
+  }
+
+  function copyImageFromUrl(url) {
+    const clean = stripHash(url);
+    setLoading(true, '讀取圖片中...');
+    google.script.run
+      .withSuccessHandler(function (res) {
+        setLoading(false);
+        if (!res || !res.ok || !res.dataUrl) {
+          showToast('讀取失敗，請點圖片開新分頁另存', 'err');
+          return;
+        }
+        convertDataUrlToPngBlob(res.dataUrl, function (pngBlob) {
+          if (pngBlob && navigator.clipboard && window.ClipboardItem) {
+            navigator.clipboard.write([new ClipboardItem({ 'image/png': pngBlob })])
+              .then(function () { showToast('已複製圖片，可直接貼回 LINE', 'ok'); })
+              .catch(function () { copyTextValue(clean, '已改複製圖片網址'); });
+          } else {
+            copyTextValue(clean, '已改複製圖片網址');
+          }
+        });
+      })
+      .withFailureHandler(function (err) {
+        setLoading(false);
+        showToast('圖片讀取失敗：' + (err.message || err), 'err');
+      })
+      .apiGetImageBase64(state.token, clean);
+  }
+
+  function convertDataUrlToPngBlob(dataUrl, cb) {
+    const img = new Image();
+    img.onload = function () {
+      const c = document.createElement('canvas');
+      c.width = img.naturalWidth || img.width;
+      c.height = img.naturalHeight || img.height;
+      c.getContext('2d').drawImage(img, 0, 0);
+      c.toBlob(function (blob) { cb(blob); }, 'image/png');
+    };
+    img.onerror = function () { cb(null); };
+    img.src = dataUrl;
+  }
+
+  function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+  // ==========================================
+  // Tab 1A（左欄）: 手動提醒排程（支援讀取 手動名單_* 補填＋移除）
+  // ==========================================
+  function refreshManualRemindersUI(showSpinner) {
+    if (showSpinner) setLoading(true, '讀取手動提醒名單...');
+    const badge = document.getElementById('dayManualDueBadge');
+    if (!state.manualLoaded && badge) badge.textContent = '載入中...';
+
+    google.script.run
+      .withSuccessHandler(function (res) {
+        if (showSpinner) setLoading(false);
+        if (res && res.authError) { doLogout(true); return; }
+        if (res && res.ok) {
+          state.manualLoaded = true;
+          state.manualReminders = res.manualReminders || [];
+          state.manualSourceRows = res.manualSourceRows || [];
+          if (res.businessTypes) state.businessTypes = res.businessTypes;
+          if (res.officialSchedules) state.reminderOfficialSchedules = res.officialSchedules;
+          renderManualReminders();
+          if (showSpinner) showToast('手動提醒排程已更新', 'ok');
+        } else if (showSpinner) {
+          showToast((res && res.message) || '載入失敗', 'err');
+        }
+      })
+      .withFailureHandler(function (err) {
+        if (showSpinner) setLoading(false);
+        if (badge) badge.textContent = '讀取失敗';
+        if (showSpinner) showToast('讀取異常：' + (err.message || err), 'err');
+      })
+      .apiGetManualReminders(state.token);
+  }
+
+  function renderManualReminders() {
+    const ownerBadge = document.getElementById('dayManualOwnerBadge');
+    const dueBadge = document.getElementById('dayManualDueBadge');
+    if (ownerBadge) ownerBadge.textContent = getActiveOwnerCfg().label;
+
+    const scopeFilter = document.getElementById('manualScopeFilter').value || 'MY_SCOPE';
+    const dueFilter = document.getElementById('manualDueFilter').value || 'PENDING';
+    const q = (document.getElementById('manualSearchInput').value || '').trim().toLowerCase();
+    const wrap = document.getElementById('manualReminderList');
+    wrap.innerHTML = '';
+
+    const scopedAll = (state.manualReminders || []).filter(function (it) {
+      if (scopeFilter === 'MY_SCOPE') return matchesOwnerApplyType(it.applyType, it.liffGroup);
+      if (scopeFilter !== 'ALL') return it.liffGroup === scopeFilter;
+      return true;
+    });
+
+    const totalPending = scopedAll.filter(function (x) { return x.status === '待提醒'; }).length;
+    const dueSoonCnt = scopedAll.filter(function (x) { return x.status === '待提醒' && x.diffDays <= 7; }).length;
+    const dueNowCnt = scopedAll.filter(function (x) { return x.status === '待提醒' && x.diffDays <= 0; }).length;
+
+    if (dueBadge) {
+      if (!state.manualLoaded) {
+        dueBadge.className = 'badge badge-dark';
+        dueBadge.textContent = '載入中...';
+      } else if (dueNowCnt > 0) {
+        dueBadge.className = 'badge badge-err';
+        dueBadge.textContent = '今日到期 ' + dueNowCnt + ' 筆（待提醒 ' + totalPending + '）';
+      } else if (dueSoonCnt > 0) {
+        dueBadge.className = 'badge badge-warn';
+        dueBadge.textContent = '7 天內到期 ' + dueSoonCnt + ' 筆（待提醒 ' + totalPending + '）';
+      } else if (totalPending > 0) {
+        dueBadge.className = 'badge badge-cyan';
+        dueBadge.textContent = '待提醒 ' + totalPending + ' 筆';
+      } else {
+        dueBadge.className = 'badge badge-on';
+        dueBadge.textContent = '尚無待提醒';
+      }
+    }
+
+    const list = scopedAll.filter(function (it) {
+      if (dueFilter === 'PENDING' && it.status !== '待提醒') return false;
+      if (dueFilter === 'DUE_SOON' && (it.status !== '待提醒' || it.diffDays > 7)) return false;
+      if (q) {
+        const hay = (it.applicantName + ' ' + it.applyType + ' ' + it.caseNote + ' ' + it.stageName + ' ' + it.remindDate + ' ' + it.copyText).toLowerCase();
+        if (hay.indexOf(q) === -1) return false;
+      }
+      return true;
+    });
+
+    document.getElementById('manualCountLabel').textContent = '顯示 ' + list.length + ' 筆（可切換「全部業務」查其他承辦排程）';
+
+    if (!list.length) {
+      wrap.innerHTML = '<div style="text-align:center;padding:24px 12px;color:var(--muted);">目前尚無手動提醒項目。<br>請點右上角「新增手動提醒」手動建檔或從「手動名單_*」帶入補填。</div>';
+      return;
+    }
+
+    list.forEach(function (it) {
+      const isPending = it.status === '待提醒';
+      const isDueNow = isPending && it.diffDays <= 0;
+      const card = document.createElement('div');
+      card.className = 'faq-card ' + (!isPending ? 'is-off' : (isDueNow ? 'is-manual-due' : 'is-manual'));
+
+      let timingBadge = '';
+      if (it.status === '已傳送') {
+        timingBadge = '<span class="badge badge-on">已傳送（' + escapeHtml(it.remindDate) + '）</span>';
+      } else if (it.status === '已取消') {
+        timingBadge = '<span class="badge badge-off">已取消（' + escapeHtml(it.remindDate) + '）</span>';
+      } else if (it.diffDays < 0) {
+        timingBadge = '<span class="badge badge-err">已到期 ' + Math.abs(it.diffDays) + ' 天（' + escapeHtml(it.remindDate) + '）</span>';
+      } else if (it.diffDays === 0) {
+        timingBadge = '<span class="badge badge-err">今日到期（' + escapeHtml(it.remindDate) + '）</span>';
+      } else if (it.diffDays <= 7) {
+        timingBadge = '<span class="badge badge-warn">' + it.diffDays + ' 天後（' + escapeHtml(it.remindDate) + '）</span>';
+      } else {
+        timingBadge = '<span class="badge badge-dark">' + escapeHtml(it.remindDate) + '（' + it.diffDays + ' 天後）</span>';
+      }
+
+      const head = document.createElement('div');
+      head.className = 'faq-head';
+      head.innerHTML =
+        '<div class="faq-head-left">' +
+          timingBadge +
+          '<span class="badge badge-cat">' + escapeHtml(it.applyType) + '</span>' +
+          '<strong style="font-size:14.5px;color:var(--charcoal);">' + escapeHtml(it.applicantName) + '</strong>' +
+          (it.caseNote ? ('<span style="font-size:12.5px;color:var(--muted);">（' + escapeHtml(it.caseNote) + '）</span>') : '') +
+        '</div>';
+
+      const ops = document.createElement('div');
+      ops.className = 'toolbar-group';
+
+      const copyMsgBtn = document.createElement('button');
+      copyMsgBtn.type = 'button';
+      copyMsgBtn.className = 'btn btn-primary btn-xs';
+      copyMsgBtn.textContent = '複製訊息';
+      ops.appendChild(copyMsgBtn);
+
+      const editBtn = document.createElement('button');
+      editBtn.type = 'button';
+      editBtn.className = 'btn btn-xs';
+      editBtn.textContent = '編輯';
+      editBtn.onclick = function () { openManualEditModal(it); };
+      ops.appendChild(editBtn);
+
+      if (isPending) {
+        const doneBtn = document.createElement('button');
+        doneBtn.type = 'button';
+        doneBtn.className = 'btn btn-soft btn-xs';
+        doneBtn.textContent = '已傳送';
+        doneBtn.onclick = function () { setManualReminderStatusUI(it, '已傳送'); };
+        ops.appendChild(doneBtn);
+      } else {
+        const restoreBtn = document.createElement('button');
+        restoreBtn.type = 'button';
+        restoreBtn.className = 'btn btn-xs';
+        restoreBtn.textContent = '恢復';
+        restoreBtn.onclick = function () { setManualReminderStatusUI(it, '待提醒'); };
+        ops.appendChild(restoreBtn);
+      }
+
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'btn btn-danger btn-xs';
+      removeBtn.textContent = '移除';
+      removeBtn.onclick = function () { deleteManualStageDirectlyUI(it); };
+      ops.appendChild(removeBtn);
+
+      head.appendChild(ops);
+      card.appendChild(head);
+
+      const meta = document.createElement('div');
+      meta.className = 'hint';
+      meta.style.marginTop = '5px';
+      meta.innerHTML =
+        '階段：' + escapeHtml(it.stageName) +
+        (it.baseDate ? (' ｜ 基準日：' + escapeHtml(it.baseDate)) : '') +
+        (it.deadlineDate && it.deadlineDate !== it.baseDate ? (' ｜ 截止日：<strong style="color:var(--err-text);">' + escapeHtml(it.deadlineDate) + '</strong>') : '');
+      card.appendChild(meta);
+
+      const box = document.createElement('div');
+      box.className = 'msg-bubble';
+      box.style.marginTop = '7px';
+      const ta = document.createElement('textarea');
+      ta.className = 'msg-edit-area';
+      ta.value = it.copyText || '';
+      ta.rows = Math.min(9, Math.max(3, (it.copyText || '').split('\n').length + 1));
+      ta.onfocus = function () { state.lastFocusedTextarea = ta; };
+      box.appendChild(ta);
+      card.appendChild(box);
+
+      copyMsgBtn.onclick = function () {
+        copyTextValue(ta.value, '已複製訊息，可直接貼回官方 LINE');
+      };
+
+      wrap.appendChild(card);
+    });
+  }
+
+  function setManualReminderStatusUI(item, newStatus) {
+    setLoading(true, '更新狀態中...');
+    google.script.run
+      .withSuccessHandler(function (res) {
+        setLoading(false);
+        if (res && res.authError) { doLogout(true); return; }
+        if (res && res.ok) {
+          state.manualReminders = res.manualReminders || [];
+          renderManualReminders();
+          showToast('已更新為「' + newStatus + '」', 'ok');
+        } else showToast((res && res.message) || '更新失敗', 'err');
+      })
+      .withFailureHandler(function (err) { setLoading(false); showToast('更新異常：' + (err.message || err), 'err'); })
+      .apiSetManualReminderStatus(state.token, item.rowIndex, newStatus);
+  }
+
+  function deleteManualStageDirectlyUI(item) {
+    if (!confirm('確定要移除「' + item.applicantName + '｜' + item.stageName + '」這筆手動提醒嗎？')) return;
+    setLoading(true, '移除中...');
+    google.script.run
+      .withSuccessHandler(function (res) {
+        setLoading(false);
+        if (res && res.authError) { doLogout(true); return; }
+        if (res && res.ok) {
+          state.manualReminders = res.manualReminders || [];
+          renderManualReminders();
+          showToast('已移除該筆提醒排程', 'ok');
+        } else showToast((res && res.message) || '移除失敗', 'err');
+      })
+      .withFailureHandler(function (err) { setLoading(false); showToast('移除異常：' + (err.message || err), 'err'); })
+      .apiDeleteManualReminder(state.token, item.rowIndex, false, item.caseId);
+  }
+
+  // --- Modal 7：新增手動提醒（讀取 手動名單_* 分頁補填缺漏 ＋ 自由移除階段） ---
+  function buildMcSemesterOptions() {
+    const sel = document.getElementById('mcSemesterSelect');
+    if (!sel) return;
+    const nowYear = new Date().getFullYear();
+    sel.innerHTML = '<option value="">-- 選擇學期自動填入補助起訖日 --</option>';
+    for (let y = nowYear; y <= nowYear + 2; y++) {
+      const opt2 = document.createElement('option');
+      opt2.value = y + '-02-01|' + y + '-03-15';
+      opt2.textContent = (y - 1912) + ' 學年第 2 學期（' + y + '/02/01 ～ ' + y + '/03/15）';
+      sel.appendChild(opt2);
+
+      const opt1 = document.createElement('option');
+      opt1.value = y + '-09-01|' + y + '-10-15';
+      opt1.textContent = (y - 1911) + ' 學年第 1 學期（' + y + '/09/01 ～ ' + y + '/10/15）';
+      sel.appendChild(opt1);
+    }
+  }
+
+  function openManualCreateModal() {
+    setLoading(true, '讀取最新規則與手動名單...');
+    google.script.run
+      .withSuccessHandler(function (res) {
+        setLoading(false);
+        if (res && res.authError) { doLogout(true); return; }
+        if (res && res.ok) {
+          state.manualLoaded = true;
+          state.manualReminders = res.manualReminders || [];
+          state.manualSourceRows = res.manualSourceRows || [];
+          state.businessTypes = res.businessTypes || [];
+          state.reminderOfficialSchedules = res.officialSchedules || [];
+          showManualCreateModalNow();
+        } else {
+          showToast((res && res.message) || '無法載入提醒規則', 'err');
+        }
+      })
+      .withFailureHandler(function (err) { setLoading(false); showToast('載入異常：' + (err.message || err), 'err'); })
+      .apiGetManualReminders(state.token);
+  }
+
+  function showManualCreateModalNow() {
+    document.getElementById('mcSourceSheetName').value = '';
+    document.getElementById('mcSourceRowIndex').value = '';
+    document.getElementById('mcSourceMissingNotice').classList.add('hidden');
+    document.getElementById('mcSourceFilter').value = state.ownerProfile === 'ALL' ? 'ALL' : 'MY_SCOPE';
+    renderMcSourceOptions();
+
+    const defaultGrp = getActiveOwnerCfg().liffGroups[0] || '榮民就業';
+    document.getElementById('mcGroup').value = defaultGrp;
+    document.getElementById('mcApplicantName').value = '';
+    document.getElementById('mcApplicantName').classList.remove('input-missing');
+    document.getElementById('mcCaseNote').value = '';
+    document.getElementById('mcIsFullTimeChk').checked = false;
+    state.mcDraftStages = [];
+    document.getElementById('mcStagesPreviewWrap').classList.add('hidden');
+    document.getElementById('mcStagesPreviewList').innerHTML = '';
+
+    onMcGroupChange();
+    document.getElementById('manualCreateModal').classList.remove('hidden');
+  }
+
+  function renderMcSourceOptions() {
+    const sel = document.getElementById('mcSourceSelect');
+    const filterVal = document.getElementById('mcSourceFilter').value || 'MY_SCOPE';
+    const list = (state.manualSourceRows || []).filter(function (r) {
+      if (filterVal === 'MY_SCOPE') return matchesOwnerApplyType(r.applyType, r.liffGroup);
+      if (filterVal !== 'ALL') return r.sheetName === filterVal;
+      return true;
+    });
+
+    sel.innerHTML = '<option value="">-- 自行手動輸入（共 ' + list.length + ' 筆名單可帶入） --</option>';
+    list.forEach(function (r) {
+      const opt = document.createElement('option');
+      opt.value = r.sourceKey;
+      const missingTag = (r.missingHints && r.missingHints.length) ? ('｜缺：' + r.missingHints.join('、')) : '｜資料完整';
+      const doneTag = r.alreadyImported ? '[已建過] ' : '';
+      opt.textContent = doneTag + '[' + r.sheetLabel + ' #' + r.rowIndex + '] ' +
+        (r.applicantName || '未填姓名') + (r.caseNote ? ('｜' + r.caseNote) : '') + missingTag;
+      sel.appendChild(opt);
+    });
+  }
+
+  function onMcSourceRowSelect() {
+    const key = document.getElementById('mcSourceSelect').value;
+    const noticeEl = document.getElementById('mcSourceMissingNotice');
+    const nameEl = document.getElementById('mcApplicantName');
+    nameEl.classList.remove('input-missing');
+
+    if (!key) {
+      document.getElementById('mcSourceSheetName').value = '';
+      document.getElementById('mcSourceRowIndex').value = '';
+      noticeEl.classList.add('hidden');
+      return;
+    }
+
+    const found = (state.manualSourceRows || []).find(function (r) { return r.sourceKey === key; });
+    if (!found) return;
+
+    document.getElementById('mcSourceSheetName').value = found.sheetName;
+    document.getElementById('mcSourceRowIndex').value = found.rowIndex;
+
+    if (found.liffGroup) document.getElementById('mcGroup').value = found.liffGroup;
+    onMcGroupChange();
+
+    if (found.applyType) {
+      const typeSel = document.getElementById('mcApplyType');
+      const hasOpt = Array.from(typeSel.options).some(function (o) { return o.value === found.applyType; });
+      if (hasOpt) {
+        typeSel.value = found.applyType;
+        onMcApplyTypeChange();
+      }
+    }
+
+    nameEl.value = found.applicantName || '';
+    if (!found.applicantName) nameEl.classList.add('input-missing');
+    document.getElementById('mcCaseNote').value = found.caseNote || '';
+    document.getElementById('mcIsFullTimeChk').checked = !!found.isFullTime;
+
+    const dates = found.dates || {};
+    let filledCount = 0;
+    document.querySelectorAll('.mc-date-inp').forEach(function (inp) {
+      const dk = inp.getAttribute('data-key');
+      const val = dates[dk] || '';
+      inp.value = val;
+      if (val) {
+        filledCount++;
+        inp.classList.remove('input-missing');
+      } else if (inp.getAttribute('data-optional') !== 'true') {
+        inp.classList.add('input-missing');
+      }
+    });
+
+    if (found.missingHints && found.missingHints.length) {
+      noticeEl.textContent = '已帶入既有欄位，請補填標黃缺漏項目：' + found.missingHints.join('、') + '。';
+      noticeEl.classList.remove('hidden');
+    } else {
+      noticeEl.classList.add('hidden');
+    }
+
+    if (filledCount > 0) {
+      previewManualCreateStages();
+    }
+  }
+
+  function onMcGroupChange() {
+    const grp = document.getElementById('mcGroup').value;
+    document.getElementById('mcCaseNoteLabel').textContent = GROUP_NOTE_LABELS[grp] || '案件備註（選填）';
+
+    const sel = document.getElementById('mcApplyType');
+    const scoped = (state.businessTypes || []).filter(function (t) { return t.liffGroup === grp; });
+    sel.innerHTML = '<option value="">-- 請選擇申請種類 --</option>';
+    scoped.forEach(function (t) {
+      const opt = document.createElement('option');
+      opt.value = t.applyType;
+      opt.textContent = t.applyType + '（' + t.totalStageCount + ' 階段）';
+      sel.appendChild(opt);
+    });
+    if (scoped.length === 1) sel.value = scoped[0].applyType;
+    onMcApplyTypeChange();
+  }
+
+  function onMcApplyTypeChange() {
+    const typeVal = document.getElementById('mcApplyType').value;
+    const found = (state.businessTypes || []).find(function (t) { return t.applyType === typeVal; });
+    const dateWrap = document.getElementById('mcDateFieldsWrap');
+    const offPanel = document.getElementById('mcOfficialPanel');
+    const semWrap = document.getElementById('mcSemesterWrap');
+    const ftWrap = document.getElementById('mcFullTimeWrap');
+
+    dateWrap.innerHTML = '';
+    offPanel.classList.add('hidden');
+    offPanel.removeAttribute('open');
+    semWrap.classList.add('hidden');
+    ftWrap.classList.add('hidden');
+    state.mcDraftStages = [];
+    document.getElementById('mcStagesPreviewWrap').classList.add('hidden');
+
+    if (!found) return;
+
+    if (found.noteExample) {
+      document.getElementById('mcCaseNote').placeholder = found.noteExample;
+    }
+
+    const matchingSch = (state.reminderOfficialSchedules || []).filter(function (s) {
+      return s.status !== '停用' && s.applyType === typeVal;
+    });
+    if (matchingSch.length > 0) {
+      const offSel = document.getElementById('mcOfficialSelect');
+      offSel.innerHTML = '<option value="">-- 自行輸入日期 --</option>';
+      matchingSch.forEach(function (s) {
+        const opt = document.createElement('option');
+        opt.value = s.scheduleId;
+        opt.textContent = s.name + (s.startDate ? ('｜' + s.startDate) : '');
+        offSel.appendChild(opt);
+      });
+      document.getElementById('mcOfficialTitle').textContent = '官方期程快速帶入（選填｜' + matchingSch.length + ' 筆）';
+      offPanel.classList.remove('hidden');
+    }
+
+    if (typeVal.indexOf('正式學籍') !== -1) {
+      document.getElementById('mcSemesterSelect').value = '';
+      semWrap.classList.remove('hidden');
+    }
+
+    if (typeVal.indexOf('職訓中心') !== -1) {
+      ftWrap.classList.remove('hidden');
+    }
+
+    const fields = found.dateFields || [{ key: 'startDate', label: '基準日期', optional: false }];
+    fields.forEach(function (f) {
+      const div = document.createElement('div');
+      div.innerHTML =
+        '<label class="field-label">' + escapeHtml(f.label) + (f.optional ? '（選填）' : '') + '</label>' +
+        '<input id="mcDate_' + escapeHtml(f.key) + '" type="date" class="input mc-date-inp" data-key="' + escapeHtml(f.key) + '" data-optional="' + (f.optional ? 'true' : 'false') + '" onchange="this.classList.remove(\'input-missing\');debouncedMcPreview()">';
+      dateWrap.appendChild(div);
+    });
+  }
+
+  function onMcOfficialSelect() {
+    const schId = document.getElementById('mcOfficialSelect').value;
+    if (!schId) return;
+    const found = (state.reminderOfficialSchedules || []).find(function (s) { return s.scheduleId === schId; });
+    if (!found) return;
+
+    const setDate = function (k, val) {
+      const el = document.getElementById('mcDate_' + k);
+      if (el && /^\d{4}-\d{2}-\d{2}$/.test(String(val || ''))) {
+        el.value = val;
+        el.classList.remove('input-missing');
+      }
+    };
+    setDate('regStart', found.regStart);
+    setDate('regEnd', found.regEnd);
+    setDate('startDate', found.startDate);
+    setDate('endDate', found.endDate);
+
+    if (found.isFullTime === '是') document.getElementById('mcIsFullTimeChk').checked = true;
+    if (!document.getElementById('mcCaseNote').value.trim()) {
+      document.getElementById('mcCaseNote').value = found.name;
+    }
+    previewManualCreateStages();
+  }
+
+  function onMcSemesterSelect() {
+    const val = document.getElementById('mcSemesterSelect').value;
+    if (!val || val.indexOf('|') === -1) return;
+    const p = val.split('|');
+    const sEl = document.getElementById('mcDate_subsidyStart');
+    const eEl = document.getElementById('mcDate_subsidyEnd');
+    if (sEl) { sEl.value = p[0]; sEl.classList.remove('input-missing'); }
+    if (eEl) { eEl.value = p[1]; eEl.classList.remove('input-missing'); }
+    previewManualCreateStages();
+  }
+
+  function collectMcDates() {
+    const dates = {};
+    document.querySelectorAll('.mc-date-inp').forEach(function (inp) {
+      const k = inp.getAttribute('data-key');
+      const v = String(inp.value || '').trim();
+      if (k && /^\d{4}-\d{2}-\d{2}$/.test(v)) dates[k] = v;
+    });
+    return dates;
+  }
+
+  function debouncedMcPreview() {
+    document.getElementById('mcApplicantName').classList.remove('input-missing');
+    clearTimeout(state.mcPreviewTimer);
+    state.mcPreviewTimer = setTimeout(function () {
+      const dates = collectMcDates();
+      if (Object.keys(dates).length > 0 && document.getElementById('mcApplyType').value) {
+        previewManualCreateStages();
+      }
+    }, 350);
+  }
+
+  function previewManualCreateStages() {
+    const applyType = document.getElementById('mcApplyType').value;
+    const dates = collectMcDates();
+    if (!applyType) { showToast('請先選擇申請種類', 'err'); return; }
+    if (!Object.keys(dates).length) { showToast('請至少填寫一個日期', 'err'); return; }
+
+    const reqId = ++state.mcPreviewSeq;
+    const wrap = document.getElementById('mcStagesPreviewWrap');
+    const listEl = document.getElementById('mcStagesPreviewList');
+    wrap.classList.remove('hidden');
+    listEl.innerHTML = '<div class="hint">正在依國定假日表試算排程與文案...</div>';
+
+    google.script.run
+      .withSuccessHandler(function (res) {
+        if (reqId !== state.mcPreviewSeq) return;
+        if (res && res.authError) { doLogout(true); return; }
+        if (!res || !res.ok || !res.stages || !res.stages.length) {
+          state.mcDraftStages = [];
+          listEl.innerHTML = '<div class="hint" style="color:var(--err-text);">目前填入的日期查無對應階段，請補填缺漏日期。</div>';
+          return;
+        }
+        state.mcDraftStages = res.stages.map(function (st) {
+          return Object.assign({ selected: !st.isPast }, st);
+        });
+        if (state.mcDraftStages.every(function (x) { return !x.selected; })) {
+          state.mcDraftStages.forEach(function (x) { x.selected = true; });
+        }
+        renderMcStagesPreview();
+      })
+      .withFailureHandler(function (err) {
+        if (reqId !== state.mcPreviewSeq) return;
+        listEl.innerHTML = '<div class="hint" style="color:var(--err-text);">試算失敗：' + escapeHtml(err.message || err) + '</div>';
+      })
+      .apiPreviewManualReminder(state.token, {
+        applyType: applyType,
+        dates: dates,
+        isFullTime: document.getElementById('mcIsFullTimeChk').checked,
+        applicantName: (document.getElementById('mcApplicantName').value || '').trim() || '退除役官兵',
+        caseNote: (document.getElementById('mcCaseNote').value || '').trim()
+      });
+  }
+
+  function removeMcDraftStage(idx) {
+    state.mcDraftStages.splice(idx, 1);
+    renderMcStagesPreview();
+  }
+
+  function renderMcStagesPreview() {
+    const listEl = document.getElementById('mcStagesPreviewList');
+    listEl.innerHTML = '';
+
+    if (!state.mcDraftStages.length) {
+      listEl.innerHTML = '<div class="hint">已移除全部階段，可重新點擊上方「套用規則試算排程與文案」。</div>';
+      return;
+    }
+
+    state.mcDraftStages.forEach(function (st, idx) {
+      const card = document.createElement('div');
+      card.className = 'stage-edit-card';
+      card.innerHTML =
+        '<div class="stage-edit-head">' +
+          '<label style="display:flex;align-items:center;gap:8px;font-weight:700;color:var(--charcoal);cursor:pointer;">' +
+            '<input type="checkbox" ' + (st.selected ? 'checked' : '') + ' onchange="state.mcDraftStages[' + idx + '].selected=this.checked">' +
+            '<span>' + escapeHtml(st.stageName) + '</span>' +
+            (st.wasShifted ? '<span class="badge badge-warn">遇假日提前</span>' : '') +
+            (st.isPast ? '<span class="badge badge-off">日期已過</span>' : '') +
+          '</label>' +
+          '<div style="display:flex;align-items:center;gap:6px;">' +
+            '<span class="hint" style="margin:0;">提醒日：</span>' +
+            '<input type="date" class="input" style="width:142px;padding:4px 8px;font-size:13px;" value="' + escapeHtml(st.remindDate) + '" onchange="state.mcDraftStages[' + idx + '].remindDate=this.value">' +
+            '<button type="button" class="btn btn-danger btn-xs" onclick="removeMcDraftStage(' + idx + ')">移除</button>' +
+          '</div>' +
+        '</div>' +
+        '<textarea class="textarea" style="min-height:84px;font-size:13.5px;background:#FFF;" oninput="state.mcDraftStages[' + idx + '].copyText=this.value">' + escapeHtml(st.copyText) + '</textarea>';
+      listEl.appendChild(card);
+    });
+  }
+
+  function saveManualCreateUI() {
+    const applicantName = (document.getElementById('mcApplicantName').value || '').trim();
+    const liffGroup = document.getElementById('mcGroup').value;
+    const applyType = document.getElementById('mcApplyType').value;
+    const caseNote = (document.getElementById('mcCaseNote').value || '').trim();
+
+    if (!applicantName) {
+      document.getElementById('mcApplicantName').classList.add('input-missing');
+      showToast('請填寫申請人姓名或稱呼', 'err');
+      return;
+    }
+    if (!applyType) { showToast('請選擇申請種類', 'err'); return; }
+
+    const chosenStages = (state.mcDraftStages || []).filter(function (s) { return s.selected && s.remindDate; });
+    if (!chosenStages.length && !Object.keys(collectMcDates()).length) {
+      showToast('請填寫日期並按「套用規則試算排程與文案」', 'err');
+      return;
+    }
+
+    setLoading(true, '正在建立手動提醒排程...');
+    google.script.run
+      .withSuccessHandler(function (res) {
+        setLoading(false);
+        if (res && res.authError) { doLogout(true); return; }
+        if (res && res.ok) {
+          closeModal('manualCreateModal');
+          state.manualLoaded = true;
+          state.manualReminders = res.manualReminders || [];
+          if (res.manualSourceRows) state.manualSourceRows = res.manualSourceRows;
+          renderManualReminders();
+          showToast('已建立 ' + res.count + ' 個手動提醒階段', 'ok');
+        } else showToast((res && res.message) || '建立失敗', 'err');
+      })
+      .withFailureHandler(function (err) { setLoading(false); showToast('建立異常：' + (err.message || err), 'err'); })
+      .apiCreateManualReminder(state.token, {
+        applicantName: applicantName,
+        liffGroup: liffGroup,
+        applyType: applyType,
+        caseNote: caseNote,
+        dates: collectMcDates(),
+        isFullTime: document.getElementById('mcIsFullTimeChk').checked,
+        stages: chosenStages,
+        sourceSheetName: document.getElementById('mcSourceSheetName').value,
+        sourceRowIndex: Number(document.getElementById('mcSourceRowIndex').value || 0)
+      });
+  }
+
+  // --- Modal 8：編輯單筆手動提醒排程與文案 ---
+  function openManualEditModal(item) {
+    document.getElementById('meRowIndex').value = item.rowIndex;
+    document.getElementById('meCaseId').value = item.caseId || '';
+    document.getElementById('meApplicantName').value = item.applicantName || '';
+    document.getElementById('meCaseNote').value = item.caseNote || '';
+    document.getElementById('meStageName').value = item.stageName || '';
+    document.getElementById('meRemindDate').value = item.remindDate || '';
+    document.getElementById('meStatus').value = item.status || '待提醒';
+    document.getElementById('meCopyText').value = item.copyText || '';
+    document.getElementById('manualEditModal').classList.remove('hidden');
+  }
+
+  function saveManualEditUI() {
+    const payload = {
+      rowIndex: Number(document.getElementById('meRowIndex').value || 0),
+      applicantName: document.getElementById('meApplicantName').value.trim(),
+      caseNote: document.getElementById('meCaseNote').value.trim(),
+      stageName: document.getElementById('meStageName').value.trim(),
+      remindDate: document.getElementById('meRemindDate').value.trim(),
+      status: document.getElementById('meStatus').value,
+      copyText: document.getElementById('meCopyText').value.trim()
+    };
+    if (!payload.remindDate) { showToast('請選擇預計提醒日', 'err'); return; }
+
+    setLoading(true, '儲存修改中...');
+    google.script.run
+      .withSuccessHandler(function (res) {
+        setLoading(false);
+        if (res && res.authError) { doLogout(true); return; }
+        if (res && res.ok) {
+          closeModal('manualEditModal');
+          state.manualReminders = res.manualReminders || [];
+          renderManualReminders();
+          showToast('排程與文案已更新', 'ok');
+        } else showToast((res && res.message) || '儲存失敗', 'err');
+      })
+      .withFailureHandler(function (err) { setLoading(false); showToast('儲存異常：' + (err.message || err), 'err'); })
+      .apiUpdateManualReminder(state.token, payload);
+  }
+
+  function deleteManualFromModal(deleteWholeCase) {
+    const rowIndex = Number(document.getElementById('meRowIndex').value || 0);
+    const caseId = document.getElementById('meCaseId').value;
+    const msg = deleteWholeCase
+      ? '確定要刪除這筆案件的所有手動提醒階段嗎？（無法復原）'
+      : '確定要移除此階段提醒嗎？（無法復原）';
+    if (!confirm(msg)) return;
+
+    setLoading(true, '移除中...');
+    google.script.run
+      .withSuccessHandler(function (res) {
+        setLoading(false);
+        if (res && res.authError) { doLogout(true); return; }
+        if (res && res.ok) {
+          closeModal('manualEditModal');
+          state.manualReminders = res.manualReminders || [];
+          renderManualReminders();
+          showToast(deleteWholeCase ? '已刪除整筆案件' : '已移除該階段', 'ok');
+        } else showToast((res && res.message) || '移除失敗', 'err');
+      })
+      .withFailureHandler(function (err) { setLoading(false); showToast('移除異常：' + (err.message || err), 'err'); })
+      .apiDeleteManualReminder(state.token, rowIndex, !!deleteWholeCase, caseId);
+  }
+
+  // ==========================================
+  // Tab 1B（右欄）: 常用回覆快速複製
+  // ==========================================
+  function renderDayCatPills() {
+    const wrap = document.getElementById('dayCatPills');
+    wrap.innerHTML = '';
+
+    const pills = [];
+    if (state.ownerProfile !== 'ALL') {
+      pills.push({ key: 'MY_SCOPE', label: '我的業務（' + getActiveOwnerCfg().label + '）', isMine: true });
+    }
+    pills.push({ key: 'ALL', label: '全部業務', isMine: false });
+    state.categories.forEach(function (cat) {
+      pills.push({ key: cat, label: cat, isMine: false });
+    });
+
+    pills.forEach(function (p) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'cat-pill' + (p.isMine ? ' mine-pill' : '') + (state.dayCat === p.key ? ' active' : '');
+      btn.textContent = p.label;
+      btn.onclick = function () {
+        state.dayCat = p.key;
+        renderDayCatPills();
+        renderDaytimeList();
+      };
+      wrap.appendChild(btn);
+    });
+  }
+
+  function toggleDayPinFilter() {
+    state.dayOnlyPinned = !state.dayOnlyPinned;
+    document.getElementById('dayPinFilterBtn').classList.toggle('btn-primary', state.dayOnlyPinned);
+    renderDaytimeList();
+  }
+
+  function toggleAllDayExpand() {
+    state.dayExpandAll = !state.dayExpandAll;
+    renderDaytimeList();
+  }
+
+  function togglePinItem(key) {
+    if (state.pinnedKeys.has(key)) state.pinnedKeys.delete(key);
+    else state.pinnedKeys.add(key);
+    savePinnedKeys();
+    renderDaytimeList();
+  }
+
+  function renderDaytimeList() {
+    const q = (document.getElementById('daySearch').value || '').trim().toLowerCase();
+    const listWrap = document.getElementById('daytimeList');
+    listWrap.innerHTML = '';
+
+    let items = state.faqs.filter(function (f) {
+      if (f.status === '停用') return false;
+      if (state.dayCat === 'MY_SCOPE') {
+        if (!matchesOwnerFaq(f)) return false;
+      } else if (state.dayCat !== 'ALL' && f.category !== state.dayCat) {
+        return false;
+      }
+      if (state.dayOnlyPinned && !state.pinnedKeys.has(getFaqKey(f))) return false;
+      if (q) {
+        const hay = (f.category + ' ' + f.keywords + ' ' + f.msgs.join(' ') + ' ' + f.contact + ' ' + f.note).toLowerCase();
+        if (hay.indexOf(q) === -1) return false;
+      }
+      return true;
+    });
+
+    items.sort(function (a, b) {
+      const pa = state.pinnedKeys.has(getFaqKey(a)) ? 1 : 0;
+      const pb = state.pinnedKeys.has(getFaqKey(b)) ? 1 : 0;
+      if (pa !== pb) return pb - pa;
+      if (state.ownerProfile === 'CLASS2_CPAS' && state.dayCat === 'MY_SCOPE') {
+        const ca = isCpasFaqItem(a) ? 1 : 0;
+        const cb = isCpasFaqItem(b) ? 1 : 0;
+        if (ca !== cb) return cb - ca;
+      }
+      const da = a.status === '僅白天' ? 1 : 0;
+      const db = b.status === '僅白天' ? 1 : 0;
+      if (da !== db) return db - da;
+      return 0;
+    });
+
+    document.getElementById('dayCountLabel').textContent = '共 ' + items.length + ' 筆';
+
+    if (!items.length) {
+      listWrap.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted);">查無符合條件的問答。</div>';
+      return;
+    }
+
+    items.forEach(function (item) {
+      const key = getFaqKey(item);
+      const isPinned = state.pinnedKeys.has(key);
+      const card = document.createElement('div');
+      card.className = 'faq-card' + (item.status === '僅白天' ? ' is-day' : '');
+
+      const head = document.createElement('div');
+      head.className = 'faq-head';
+      const left = document.createElement('div');
+      left.className = 'faq-head-left';
+
+      const starBtn = document.createElement('button');
+      starBtn.type = 'button';
+      starBtn.className = 'star-btn' + (isPinned ? ' pinned' : '');
+      starBtn.title = isPinned ? '取消釘選' : '釘選置頂';
+      starBtn.textContent = isPinned ? '★' : '☆';
+      starBtn.onclick = function () { togglePinItem(key); };
+      left.appendChild(starBtn);
+
+      if (item.status === '僅白天') {
+        const stBadge = document.createElement('span');
+        stBadge.className = 'badge badge-day';
+        stBadge.textContent = '常用範本';
+        left.appendChild(stBadge);
+      }
+
+      const catBadge = document.createElement('span');
+      catBadge.className = 'badge badge-cat';
+      catBadge.textContent = item.category;
+      left.appendChild(catBadge);
+
+      const kwEl = document.createElement('span');
+      kwEl.className = 'kw-line' + (state.dayExpandAll ? '' : ' collapsed');
+      kwEl.textContent = item.keywords;
+      kwEl.title = '點擊展開或收合關鍵字';
+      kwEl.onclick = function () { kwEl.classList.toggle('collapsed'); };
+      left.appendChild(kwEl);
+      head.appendChild(left);
+
+      const right = document.createElement('div');
+      right.className = 'toolbar-group';
+
+      const validTexts = item.msgs.filter(function (m) {
+        return m.trim() && !isImageUrl(m) && !isAudioUrl(m) && !isFlexTag(m);
+      });
+      if (validTexts.length > 0) {
+        const copyAllBtn = document.createElement('button');
+        copyAllBtn.type = 'button';
+        copyAllBtn.className = 'btn btn-primary btn-xs';
+        copyAllBtn.textContent = validTexts.length > 1 ? '複製完整文字' : '複製文字';
+        copyAllBtn.onclick = function () {
+          const areas = card.querySelectorAll('.msg-edit-area');
+          const parts = [];
+          areas.forEach(function (a) {
+            const t = (a.value || '').trim();
+            if (t) parts.push(t);
+          });
+          let out = parts.join('\n\n');
+          if (item.contact) out += '\n\n聯繫電話：' + item.contact;
+          copyTextValue(out, '已複製文字，可直接貼回 LINE');
+        };
+        right.appendChild(copyAllBtn);
+      }
+
+      head.appendChild(right);
+      card.appendChild(head);
+
+      const msgGrid = document.createElement('div');
+      msgGrid.className = 'msg-grid';
+
+      item.msgs.forEach(function (m, mIdx) {
+        const raw = String(m || '').trim();
+        if (!raw) return;
+        const box = document.createElement('div');
+        box.className = 'msg-bubble';
+
+        if (isFlexTag(raw)) {
+          box.innerHTML =
+            '<div class="msg-bubble-head">' +
+              '<span>職訓備案日試算互動卡片</span>' +
+              '<div class="toolbar-group"></div>' +
+            '</div>' +
+            '<div class="flex-preview-card">' +
+              '<div class="flex-preview-title">開訓前第 8 工作日自動試算卡</div>' +
+              '<div class="flex-preview-desc">可複製引導語請民眾在官方 LINE 輸入「備案日試算」開啟小日曆。</div>' +
+            '</div>';
+          const actWrap = box.querySelector('.toolbar-group');
+          const cpGuideBtn = document.createElement('button');
+          cpGuideBtn.type = 'button'; cpGuideBtn.className = 'btn btn-soft btn-xs'; cpGuideBtn.textContent = '複製引導語';
+          cpGuideBtn.onclick = function () { copyTextValue(FLEX_CALC_GUIDE_TEXT, '已複製試算引導語'); };
+          actWrap.appendChild(cpGuideBtn);
+        } else if (isImageUrl(raw)) {
+          const clean = stripHash(raw);
+          box.innerHTML = '<div class="msg-bubble-head"><span>圖片（訊息 ' + (mIdx + 1) + '）</span><div class="toolbar-group"></div></div>';
+          const actWrap = box.querySelector('.toolbar-group');
+          const cpImgBtn = document.createElement('button');
+          cpImgBtn.type = 'button'; cpImgBtn.className = 'btn btn-soft btn-xs'; cpImgBtn.textContent = '複製圖片';
+          cpImgBtn.onclick = function () { copyImageFromUrl(clean); };
+          actWrap.appendChild(cpImgBtn);
+
+          const cpUrlBtn = document.createElement('button');
+          cpUrlBtn.type = 'button'; cpUrlBtn.className = 'btn btn-xs'; cpUrlBtn.textContent = '複製連結';
+          cpUrlBtn.onclick = function () { copyTextValue(clean, '已複製圖片網址'); };
+          actWrap.appendChild(cpUrlBtn);
+
+          const img = document.createElement('img'); img.className = 'img-preview'; img.src = clean; img.alt = '圖片預覽';
+          img.onclick = function () { window.open(clean, '_blank'); };
+          box.appendChild(img);
+        } else if (isAudioUrl(raw)) {
+          const clean = stripHash(raw);
+          box.innerHTML = '<div class="msg-bubble-head"><span>語音檔（訊息 ' + (mIdx + 1) + '）</span><div class="toolbar-group"></div></div>';
+          const actWrap = box.querySelector('.toolbar-group');
+          const cpUrlBtn = document.createElement('button');
+          cpUrlBtn.type = 'button'; cpUrlBtn.className = 'btn btn-xs'; cpUrlBtn.textContent = '複製連結';
+          cpUrlBtn.onclick = function () { copyTextValue(clean, '已複製語音連結'); };
+          actWrap.appendChild(cpUrlBtn);
+
+          const audio = document.createElement('audio'); audio.controls = true; audio.style.width = '100%'; audio.src = clean;
+          box.appendChild(audio);
+        } else {
+          const bHead = document.createElement('div');
+          bHead.className = 'msg-bubble-head';
+          bHead.innerHTML = '<span>訊息 ' + (mIdx + 1) + '（可直接微調）</span>';
+          const cpBtn = document.createElement('button');
+          cpBtn.type = 'button'; cpBtn.className = 'btn btn-xs'; cpBtn.textContent = '複製此段';
+          bHead.appendChild(cpBtn);
+          box.appendChild(bHead);
+
+          const ta = document.createElement('textarea');
+          ta.className = 'msg-edit-area';
+          ta.value = raw;
+          ta.rows = Math.min(9, Math.max(2, raw.split('\n').length + 1));
+          ta.onfocus = function () { state.lastFocusedTextarea = ta; };
+          cpBtn.onclick = function () { copyTextValue(ta.value, '已複製訊息 ' + (mIdx + 1)); };
+          box.appendChild(ta);
+        }
+        msgGrid.appendChild(box);
+      });
+
+      card.appendChild(msgGrid);
+
+      if (item.contact) {
+        const meta = document.createElement('div');
+        meta.className = 'hint';
+        meta.style.marginTop = '7px';
+        meta.textContent = '聯繫電話：' + item.contact;
+        card.appendChild(meta);
+      }
+
+      listWrap.appendChild(card);
+    });
+  }
+
+  // ==========================================
+  // Tab 2: AI 幫寫草稿 ＆ 管理者群組指派
+  // ==========================================
+  function renderAssistTab() {
+    const bar = document.getElementById('assistStatusBar');
+    if (bar) {
+      const s = state.settings || {};
+      const dmOn = String(s.dmDaytimeAssistEnabled).toLowerCase() === 'true';
+      const grpOn = String(s.groupAssistantEnabled).toLowerCase() !== 'false';
+      bar.className = 'info-bar ' + (state.hasTelegramConfig ? 'ok' : 'warn');
+      bar.innerHTML =
+        '<span>上班私訊自動擬稿：<strong>' + (dmOn ? '開啟' : '關閉') + '</strong> ｜ 群組輔助：<strong>' + (grpOn ? '開啟' : '關閉') + '</strong> ｜ Telegram 推播：<strong>' + (state.hasTelegramConfig ? '已連線' : '未設定 Token') + '</strong></span>';
+    }
+    const addBtn = document.getElementById('addGroupAssignBtn');
+    if (addBtn) addBtn.classList.toggle('hidden', !canEditNow());
+    renderDraftBoardList();
+    renderGroupAssignmentsTable();
+  }
+
+  function runManualDraftAssistUI() {
+    const srcLabel = (document.getElementById('manualSourceInput').value || '').trim() || '線上詢問';
+    const q = (document.getElementById('manualQuestionInput').value || '').trim();
+    const pushTg = document.getElementById('manualPushTgChk').checked;
+
+    if (!q) { showToast('請先貼上民眾提問內容', 'err'); return; }
+
+    setLoading(true, 'AI 正在撰寫草稿並依業務分派...');
+    google.script.run
+      .withSuccessHandler(function (res) {
+        setLoading(false);
+        if (res && res.authError) { doLogout(true); return; }
+        if (!res || !res.ok) { showToast((res && res.message) || '產出草稿失敗', 'err'); return; }
+        document.getElementById('manualResSourceBadge').textContent = res.draftSource || '草稿完成';
+        document.getElementById('manualResPushBadge').textContent = res.pushStatus || '已寫入紀錄';
+        document.getElementById('manualResMaskedQ').textContent = '去識別化提問：' + (res.maskedQuestion || '');
+        document.getElementById('manualResDraftArea').value = res.draftText || '';
+        document.getElementById('manualResultBox').classList.remove('hidden');
+
+        if (res.groupDrafts) {
+          state.groupDrafts = res.groupDrafts;
+          renderDraftBoardList();
+        }
+        showToast('草稿已產出', 'ok');
+      })
+      .withFailureHandler(function (err) { setLoading(false); showToast('產出異常：' + (err.message || err), 'err'); })
+      .apiManualDraftAssist(state.token, srcLabel, q, pushTg, '');
+  }
+
+  function refreshGroupDraftsUI(showSpinner) {
+    if (showSpinner) setLoading(true, '更新草稿紀錄...');
+    google.script.run
+      .withSuccessHandler(function (res) {
+        if (showSpinner) setLoading(false);
+        if (res && res.authError) { doLogout(true); return; }
+        if (res && res.ok) {
+          state.groupDrafts = res.groupDrafts || [];
+          state.groupAssignments = res.groupAssignments || [];
+          renderDraftBoardList();
+          renderGroupAssignmentsTable();
+          if (showSpinner) showToast('已更新', 'ok');
+        }
+      })
+      .withFailureHandler(function (err) { if (showSpinner) setLoading(false); showToast('更新失敗：' + (err.message || err), 'err'); })
+      .apiGetGroupDrafts(state.token);
+  }
+
+  function toggleDraftAutoRefresh(enabled) {
+    stopDraftAutoRefresh();
+    if (enabled) {
+      state.draftTimer = setInterval(function () {
+        if (state.activeTab === 'assist' && state.token) refreshGroupDraftsUI(false);
+      }, 30000);
+      showToast('已開啟每 30 秒自動更新', 'ok');
+    }
+  }
+
+  function stopDraftAutoRefresh() {
+    if (state.draftTimer) { clearInterval(state.draftTimer); state.draftTimer = null; }
+  }
+
+  function renderDraftBoardList() {
+    const scopeFilter = (document.getElementById('draftScopeFilter') && document.getElementById('draftScopeFilter').value) || 'MY_SCOPE';
+    const q = (document.getElementById('draftSearchInput').value || '').trim().toLowerCase();
+    const wrap = document.getElementById('draftBoardList');
+    wrap.innerHTML = '';
+
+    const list = (state.groupDrafts || []).filter(function (d) {
+      if (scopeFilter === 'MY_SCOPE' && !matchesOwnerDraft(d)) return false;
+      if (!q) return true;
+      const hay = (d.sourceName + ' ' + d.maskedQuestion + ' ' + d.draftText + ' ' + d.draftSource + ' ' + d.pushStatus + ' ' + d.recipients).toLowerCase();
+      return hay.indexOf(q) !== -1;
+    });
+
+    document.getElementById('draftCountLabel').textContent = '共 ' + list.length + ' 筆';
+
+    if (!list.length) {
+      wrap.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted);">目前尚無符合條件的草稿紀錄。</div>';
+      return;
+    }
+
+    list.forEach(function (d) {
+      const card = document.createElement('div');
+      card.className = 'faq-card is-draft';
+
+      const head = document.createElement('div');
+      head.className = 'faq-head';
+      head.innerHTML =
+        '<div class="faq-head-left">' +
+          '<span class="badge badge-dark">' + escapeHtml(d.time) + '</span>' +
+          '<span class="badge badge-cat">' + escapeHtml(d.sourceName) + '</span>' +
+          '<span class="badge badge-cyan">' + escapeHtml(d.draftSource) + '</span>' +
+        '</div>';
+
+      const cpBtn = document.createElement('button');
+      cpBtn.type = 'button'; cpBtn.className = 'btn btn-primary btn-sm'; cpBtn.textContent = '複製回覆';
+      head.appendChild(cpBtn);
+      card.appendChild(head);
+
+      const qBox = document.createElement('div');
+      qBox.className = 'draft-q-box';
+      qBox.textContent = '提問：' + d.maskedQuestion;
+      card.appendChild(qBox);
+
+      const taWrap = document.createElement('div');
+      taWrap.className = 'msg-bubble';
+      taWrap.style.marginTop = '8px';
+      const ta = document.createElement('textarea');
+      ta.className = 'msg-edit-area';
+      ta.value = d.draftText || '';
+      ta.rows = Math.min(10, Math.max(3, (d.draftText || '').split('\n').length + 1));
+      taWrap.appendChild(ta);
+      card.appendChild(taWrap);
+
+      cpBtn.onclick = function () { copyTextValue(ta.value, '已複製回覆，可直接貼回 LINE'); };
+      wrap.appendChild(card);
+    });
+  }
+
+  function clearGroupDraftsUI() {
+    if (!confirm('確定要清空全部草稿紀錄嗎？')) return;
+    setLoading(true, '清空中...');
+    google.script.run
+      .withSuccessHandler(function (res) {
+        setLoading(false);
+        if (res && res.authError) { doLogout(true); return; }
+        if (res && res.ok) { state.groupDrafts = []; renderDraftBoardList(); showToast('已清空草稿紀錄', 'ok'); }
+        else showToast((res && res.message) || '清空失敗', 'err');
+      })
+      .withFailureHandler(function (err) { setLoading(false); showToast('清空失敗：' + (err.message || err), 'err'); })
+      .apiClearGroupDrafts(state.token);
+  }
+
+  function renderGroupAssignmentsTable() {
+    const tbody = document.getElementById('groupAssignTableBody');
+    if (!tbody) return;
+    const list = state.groupAssignments || [];
+    const editable = canEditNow();
+
+    if (!list.length) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:18px;">尚未偵測到 LINE 群組。</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = '';
+    list.forEach(function (g) {
+      const tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td><strong>' + escapeHtml(g.name) + '</strong></td>' +
+        '<td style="font-family:monospace;font-size:12px;">' + escapeHtml(g.groupId) + '</td>' +
+        '<td><span class="badge ' + (g.status === '停用' ? 'badge-off' : 'badge-on') + '">' + escapeHtml(g.status) + '</span></td>' +
+        '<td style="font-family:monospace;font-size:12px;">' + escapeHtml(g.telegramIds || '依業務自動分派') + '</td>' +
+        '<td>' + escapeHtml(g.note || '') + '</td>' +
+        '<td>' + escapeHtml(g.lastActive || '') + '</td>' +
+        '<td class="ga-ops"></td>';
+
+      const ops = tr.querySelector('.ga-ops');
+      if (editable) {
+        const editBtn = document.createElement('button');
+        editBtn.type = 'button'; editBtn.className = 'btn btn-xs'; editBtn.textContent = '編輯';
+        editBtn.onclick = function () { openGroupAssignModal(g); };
+        ops.appendChild(editBtn);
+
+        if (state.role === 'admin') {
+          const delBtn = document.createElement('button');
+          delBtn.type = 'button'; delBtn.className = 'btn btn-danger btn-xs'; delBtn.style.marginLeft = '4px'; delBtn.textContent = '刪除';
+          delBtn.onclick = function () { deleteGroupAssignUI(g); };
+          ops.appendChild(delBtn);
+        }
+      }
+      tbody.appendChild(tr);
+    });
+  }
+
+  function openGroupAssignModal(item) {
+    if (item) {
+      document.getElementById('gaModalTitle').textContent = '編輯群組指派';
+      document.getElementById('gaRowIndex').value = item.rowIndex;
+      document.getElementById('gaLastActive').value = item.lastActive || '';
+      document.getElementById('gaGroupId').value = item.groupId || '';
+      document.getElementById('gaName').value = item.name || '';
+      document.getElementById('gaStatus').value = item.status === '停用' ? '停用' : '啟用';
+      document.getElementById('gaTelegramIds').value = item.telegramIds || '';
+      document.getElementById('gaNote').value = item.note || '';
+    } else {
+      document.getElementById('gaModalTitle').textContent = '新增群組指派';
+      document.getElementById('gaRowIndex').value = '';
+      document.getElementById('gaLastActive').value = '';
+      document.getElementById('gaGroupId').value = '';
+      document.getElementById('gaName').value = '';
+      document.getElementById('gaStatus').value = '啟用';
+      document.getElementById('gaTelegramIds').value = '';
+      document.getElementById('gaNote').value = '';
+    }
+    document.getElementById('groupAssignModal').classList.remove('hidden');
+  }
+
+  function saveGroupAssignUI() {
+    const payload = {
+      rowIndex: document.getElementById('gaRowIndex').value ? Number(document.getElementById('gaRowIndex').value) : null,
+      groupId: document.getElementById('gaGroupId').value.trim(),
+      name: document.getElementById('gaName').value.trim(),
+      status: document.getElementById('gaStatus').value,
+      telegramIds: document.getElementById('gaTelegramIds').value.trim(),
+      note: document.getElementById('gaNote').value.trim(),
+      lastActive: document.getElementById('gaLastActive').value
+    };
+    if (!payload.groupId && !payload.name) { showToast('請填寫群組 ID 或名稱', 'err'); return; }
+    setLoading(true, '儲存中...');
+    google.script.run
+      .withSuccessHandler(function (res) {
+        setLoading(false);
+        if (res && res.authError) { doLogout(true); return; }
+        if (res && res.ok) { closeModal('groupAssignModal'); state.groupAssignments = res.groupAssignments || []; renderGroupAssignmentsTable(); showToast('群組指派已儲存', 'ok'); }
+        else showToast((res && res.message) || '儲存失敗', 'err');
+      })
+      .withFailureHandler(function (err) { setLoading(false); showToast('儲存失敗：' + (err.message || err), 'err'); })
+      .apiSaveGroupAssignment(state.token, payload);
+  }
+
+  function deleteGroupAssignUI(item) {
+    if (!confirm('確定要移除群組「' + item.name + '」的指派紀錄嗎？')) return;
+    setLoading(true, '刪除中...');
+    google.script.run
+      .withSuccessHandler(function (res) {
+        setLoading(false);
+        if (res && res.authError) { doLogout(true); return; }
+        if (res && res.ok) { state.groupAssignments = res.groupAssignments || []; renderGroupAssignmentsTable(); showToast('已刪除', 'ok'); }
+        else showToast((res && res.message) || '刪除失敗', 'err');
+      })
+      .withFailureHandler(function (err) { setLoading(false); showToast('刪除失敗：' + (err.message || err), 'err'); })
+      .apiDeleteGroupAssignment(state.token, item.rowIndex);
+  }
+
+  function fetchTelegramUsersUI() {
+    setLoading(true, '查詢近期傳訊同仁 Telegram ID...');
+    google.script.run
+      .withSuccessHandler(function (res) {
+        setLoading(false);
+        if (res && res.authError) { doLogout(true); return; }
+        if (!res || !res.ok) { showToast((res && res.message) || '查詢失敗', 'err'); return; }
+        const box = document.getElementById('tgDiscoveredBox');
+        const wrap = document.getElementById('tgDiscoveredChips');
+        wrap.innerHTML = ''; box.classList.remove('hidden');
+
+        if (!res.users || !res.users.length) {
+          wrap.innerHTML = '<span class="hint">尚無紀錄。請同仁先在 Telegram 傳任意一句話給機器人後再按一次查詢。</span>';
+          return;
+        }
+        res.users.forEach(function (u) {
+          const btn = document.createElement('button');
+          btn.type = 'button'; btn.className = 'tg-user-chip';
+          btn.textContent = u.name + (u.username ? ' (' + u.username + ')' : '') + '：' + u.chatId;
+          btn.onclick = function () { copyTextValue(u.chatId, '已複製 ' + u.name + ' 的 ID：' + u.chatId); };
+          wrap.appendChild(btn);
+        });
+        showToast('已查出 ' + res.users.length + ' 位同仁 ID，點擊即可複製', 'ok');
+      })
+      .withFailureHandler(function (err) { setLoading(false); showToast('查詢異常：' + (err.message || err), 'err'); })
+      .apiFetchTelegramChatIds(state.token);
+  }
+
+  function sendTestTelegramUI(explicitIds) {
+    let targetIds = explicitIds;
+    if (targetIds === undefined) {
+      targetIds = prompt('請輸入要接收測試推播的 Telegram 數字 ID：', state.settings.defaultTelegramIds || '');
+      if (targetIds === null) return;
+    }
+    if (!String(targetIds || '').trim()) { showToast('請先填入純數字 Telegram ID 再測試', 'err'); return; }
+    setLoading(true, '發送測試推播中...');
+    google.script.run
+      .withSuccessHandler(function (res) {
+        setLoading(false);
+        if (res && res.authError) { doLogout(true); return; }
+        showToast((res && res.message) || '測試完成', (res && res.ok) ? 'ok' : 'err');
+      })
+      .withFailureHandler(function (err) { setLoading(false); showToast('測試失敗：' + (err.message || err), 'err'); })
+      .apiSendTestTelegram(state.token, targetIds);
+  }
+
+  // ==========================================
+  // Tab 3（自動提醒管理：左「提醒文案排程管理」／右「已綁定自動提醒名單」）
+  // ==========================================
+  function loadReminderData(showToastMsg) {
+    setLoading(true, '載入自動提醒文案與名單...');
+    google.script.run
+      .withSuccessHandler(function (res) {
+        setLoading(false);
+        if (res && res.authError) { doLogout(true); return; }
+        if (!res || !res.ok) { showToast((res && res.message) || '載入失敗', 'err'); return; }
+
+        state.reminderLoaded = true;
+        state.manualLoaded = true;
+        state.reminderTemplates = res.templates || [];
+        state.businessTypes = res.businessTypes || [];
+        state.reminderOfficialSchedules = res.officialSchedules || [];
+        state.reminderRecords = res.records || [];
+        state.manualReminders = res.manualReminders || [];
+        state.manualSourceRows = res.manualSourceRows || [];
+        state.reminderPushStats = res.pushStats || { yearMonth: '', used: 0, limit: 200, remain: 200, percent: 0 };
+        state.reminderTriggerInstalled = !!res.triggerInstalled;
+        state.reminderLiffUrl = res.liffUrl || '';
+        state.reminderLiffChannelIdSet = !!res.liffChannelIdSet;
+        state.reminderOaChatUrl = res.oaChatUrl || 'https://chat.line.biz/';
+
+        document.getElementById('remLiffUrlDisplay').value = state.reminderLiffUrl || '';
+        renderManualReminders();
+        renderReminderTypeFilter();
+        renderReminderTemplates();
+        renderReminderRecords();
+        if (state.role === 'admin') {
+          renderReminderDashboard();
+          renderOfficialSchedulesTable();
+        }
+        if (showToastMsg) showToast('自動提醒資料已更新', 'ok');
+      })
+      .withFailureHandler(function (err) { setLoading(false); showToast('載入異常：' + (err.message || err), 'err'); })
+      .apiGetReminderData(state.token);
+  }
+
+  function renderReminderDashboard() {
+    const st = state.reminderPushStats || { used: 0, limit: 200, remain: 200, percent: 0 };
+    const pct = Math.min(100, Math.max(0, Number(st.percent) || 0));
+    const qText = document.getElementById('remPushQuotaText');
+    if (qText) qText.textContent = st.used + ' / ' + st.limit + ' 則（剩 ' + st.remain + ' 則）';
+    const bar = document.getElementById('remPushQuotaBar');
+    if (bar) {
+      bar.style.width = pct + '%';
+      bar.className = 'quota-bar-fill' + (pct >= 95 ? ' err' : (pct >= 80 ? ' warn' : ''));
+    }
+
+    const trigBadge = document.getElementById('remTriggerBadge');
+    const trigBtn = document.getElementById('remTriggerToggleBtn');
+    if (trigBadge && trigBtn) {
+      if (state.reminderTriggerInstalled) {
+        trigBadge.className = 'badge badge-on'; trigBadge.textContent = '已啟用（每小時）';
+        trigBtn.textContent = '暫停'; trigBtn.className = 'btn btn-danger btn-xs';
+      } else {
+        trigBadge.className = 'badge badge-warn'; trigBadge.textContent = '尚未啟用';
+        trigBtn.textContent = '啟用'; trigBtn.className = 'btn btn-primary btn-xs';
+      }
+    }
+
+    const secEl = document.getElementById('remSecurityBadge');
+    if (secEl) {
+      secEl.textContent = state.reminderLiffChannelIdSet ? '正式驗簽已啟用' : '測試模式（未填 Channel ID）';
+      secEl.style.color = state.reminderLiffChannelIdSet ? 'var(--ok-text)' : 'var(--warn-text)';
+    }
+  }
+
+  function copyLiffUrlUI() {
+    const url = (document.getElementById('remLiffUrlDisplay').value || '').trim();
+    if (!url) { showToast('尚未設定登記連結，請洽管理員', 'err'); return; }
+    copyTextValue(url, '已複製提醒登記連結，可直接貼回 LINE 傳給民眾');
+  }
+
+  function toggleReminderTriggerUI() {
+    const enable = !state.reminderTriggerInstalled;
+    if (!confirm(enable ? '確定要啟用每小時自動掃描推播嗎？' : '確定要暫停自動推播排程嗎？')) return;
+    setLoading(true, '更新排程狀態...');
+    google.script.run
+      .withSuccessHandler(function (res) {
+        setLoading(false);
+        if (res && res.authError) { doLogout(true); return; }
+        if (res && res.ok) { state.reminderTriggerInstalled = !!res.triggerInstalled; renderReminderDashboard(); showToast(res.message || '排程已更新', 'ok'); }
+        else showToast((res && res.message) || '設定失敗', 'err');
+      })
+      .withFailureHandler(function (err) { setLoading(false); showToast('排程異常：' + (err.message || err), 'err'); })
+      .apiSetupReminderTrigger(state.token, enable);
+  }
+
+  function runReminderPushNowUI() {
+    if (!confirm('確定要立即掃描並推播到期名單嗎？（每則消耗 1 則 Push 額度）')) return;
+    setLoading(true, '掃描推播中...');
+    google.script.run
+      .withSuccessHandler(function (res) {
+        setLoading(false);
+        if (res && res.authError) { doLogout(true); return; }
+        if (res && res.ok) {
+          state.reminderRecords = res.records || state.reminderRecords;
+          state.reminderPushStats = res.pushStats || state.reminderPushStats;
+          renderReminderDashboard(); renderReminderRecords();
+          showToast('掃描完成：送出 ' + (res.sent || 0) + ' 則、失敗 ' + (res.failed || 0) + ' 則', 'ok');
+        } else showToast((res && res.message) || '執行失敗', 'err');
+      })
+      .withFailureHandler(function (err) { setLoading(false); showToast('執行異常：' + (err.message || err), 'err'); })
+      .apiRunReminderPushNow(state.token);
+  }
+
+  function renderOfficialSchedulesTable() {
+    const tbody = document.getElementById('officialScheduleTableBody');
+    if (!tbody) return;
+    const filterSrc = document.getElementById('schSourceFilter').value || 'ALL';
+    const list = (state.reminderOfficialSchedules || []).filter(function (s) {
+      return filterSrc === 'ALL' || s.sourceType === filterSrc;
+    });
+
+    if (!list.length) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:18px;">尚無官方期程資料，請點右上角「Gemini 解析簡章匯入」。</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = '';
+    list.forEach(function (s) {
+      const tr = document.createElement('tr');
+      const regRange = [s.regStart || '-', s.regEnd || '-'].join(' ~ ');
+      const runRange = [s.startDate || '-', s.endDate || '-'].join(' ~ ');
+      const nameHtml = s.docUrl
+        ? ('<a href="' + escapeHtml(s.docUrl) + '" target="_blank" style="color:var(--charcoal);font-weight:600;">' + escapeHtml(s.name) + '</a>')
+        : ('<strong>' + escapeHtml(s.name) + '</strong>');
+
+      tr.innerHTML =
+        '<td><span class="badge badge-dark">' + escapeHtml(s.sourceType || '-') + '</span></td>' +
+        '<td><span class="badge badge-cat">' + escapeHtml(s.applyType || '-') + '</span></td>' +
+        '<td>' + nameHtml + '</td>' +
+        '<td style="font-size:12.5px;">' + escapeHtml(regRange) + '</td>' +
+        '<td style="font-size:12.5px;">' + escapeHtml(runRange) + '</td>' +
+        '<td><span class="badge ' + (s.isFullTime === '是' ? 'badge-on' : 'badge-off') + '">' + (s.isFullTime === '是' ? '全日制' : '否') + '</span></td>' +
+        '<td class="sch-ops"></td>';
+
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button'; delBtn.className = 'btn btn-danger btn-xs'; delBtn.textContent = '刪除';
+      delBtn.onclick = function () { deleteOfficialScheduleUI(s); };
+      tr.querySelector('.sch-ops').appendChild(delBtn);
+      tbody.appendChild(tr);
+    });
+  }
+
+  function openOfficialScheduleModal() {
+    if (!state.hasGeminiKey) { showToast('尚未設定 Gemini API Key', 'err'); return; }
+    state.schDocBase64 = ''; state.schDocMimeType = ''; state.schParsedItems = [];
+    document.getElementById('schDocFileName').textContent = '未選擇檔案';
+    document.getElementById('schModalUrl').value = '';
+    document.getElementById('schModalRawText').value = '';
+    document.getElementById('schPreviewWrap').classList.add('hidden');
+    document.getElementById('schBatchSaveBtn').classList.add('hidden');
+    syncScheduleTargetType();
+    document.getElementById('officialScheduleModal').classList.remove('hidden');
+  }
+
+  function syncScheduleTargetType() {
+    const src = document.getElementById('schModalSourceType').value;
+    const targetSel = document.getElementById('schModalApplyType');
+    if (src === '考試院考試期日表') targetSel.value = '就業考試補助';
+    else if (src === '退輔會委辦就學班隊') targetSel.value = '就讀正式學籍（未就讀）';
+    else targetSel.value = '職訓中心自辦/委外課程';
+  }
+
+  function pickScheduleDocFile() { const inp = document.getElementById('hiddenScheduleDocInput'); inp.value = ''; inp.click(); }
+
+  function handleScheduleDocFilePicked(e) {
+    const file = e.target.files && e.target.files[0]; if (!file) return;
+    if (file.size > 11.5 * 1024 * 1024) { showToast('檔案超過 11.5 MB 上限', 'err'); return; }
+    const reader = new FileReader();
+    reader.onload = function (ev) {
+      state.schDocBase64 = ev.target.result;
+      state.schDocMimeType = file.type || (file.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image/jpeg');
+      document.getElementById('schDocFileName').textContent = file.name;
+      showToast('檔案已載入', 'ok');
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function runAiParseOfficialSchedulesUI() {
+    const sourceType = document.getElementById('schModalSourceType').value;
+    const targetApplyType = document.getElementById('schModalApplyType').value;
+    const sourceUrl = (document.getElementById('schModalUrl').value || '').trim();
+    const rawText = (document.getElementById('schModalRawText').value || '').trim();
+    if (!state.schDocBase64 && !sourceUrl && !rawText) { showToast('請先上傳檔案、貼上網址或文字', 'err'); return; }
+
+    setLoading(true, 'Gemini 解析日期中...');
+    google.script.run
+      .withSuccessHandler(function (res) {
+        setLoading(false);
+        if (res && res.authError) { doLogout(true); return; }
+        if (!res || !res.ok || !res.items || !res.items.length) { showToast((res && res.message) || '未能解析出有效日期', 'err'); return; }
+        state.schParsedItems = res.items;
+        document.getElementById('schPreviewInfo').textContent = '已解析出 ' + res.items.length + ' 筆期程，確認後勾選匯入：';
+        renderParsedSchedulesPreview();
+        document.getElementById('schPreviewWrap').classList.remove('hidden');
+        document.getElementById('schBatchSaveBtn').classList.remove('hidden');
+      })
+      .withFailureHandler(function (err) { setLoading(false); showToast('解析異常：' + (err.message || err), 'err'); })
+      .apiAiParseOfficialSchedules(state.token, {
+        sourceType: sourceType, targetApplyType: targetApplyType,
+        sourceUrl: sourceUrl, rawText: rawText,
+        fileBase64: state.schDocBase64, fileMimeType: state.schDocMimeType
+      });
+  }
+
+  function renderParsedSchedulesPreview() {
+    const tbody = document.getElementById('schPreviewBody'); tbody.innerHTML = '';
+    (state.schParsedItems || []).forEach(function (it, idx) {
+      const tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td><input type="checkbox" class="sch-item-chk" data-idx="' + idx + '" checked></td>' +
+        '<td><input type="text" class="input" style="padding:4px 6px;font-size:12px;" value="' + escapeHtml(it.name) + '" oninput="state.schParsedItems[' + idx + '].name=this.value"></td>' +
+        '<td><input type="text" class="input" style="padding:4px 6px;font-size:12px;width:96px;" value="' + escapeHtml(it.regStart) + '" oninput="state.schParsedItems[' + idx + '].regStart=this.value"></td>' +
+        '<td><input type="text" class="input" style="padding:4px 6px;font-size:12px;width:96px;" value="' + escapeHtml(it.regEnd) + '" oninput="state.schParsedItems[' + idx + '].regEnd=this.value"></td>' +
+        '<td><input type="text" class="input" style="padding:4px 6px;font-size:12px;width:96px;" value="' + escapeHtml(it.startDate) + '" oninput="state.schParsedItems[' + idx + '].startDate=this.value"></td>' +
+        '<td><input type="text" class="input" style="padding:4px 6px;font-size:12px;width:96px;" value="' + escapeHtml(it.endDate) + '" oninput="state.schParsedItems[' + idx + '].endDate=this.value"></td>' +
+        '<td><select class="select" style="padding:4px 6px;font-size:12px;width:62px;" onchange="state.schParsedItems[' + idx + '].isFullTime=this.value">' +
+          '<option value="是"' + (it.isFullTime === '是' ? ' selected' : '') + '>是</option>' +
+          '<option value="否"' + (it.isFullTime !== '是' ? ' selected' : '') + '>否</option>' +
+        '</select></td>';
+      tbody.appendChild(tr);
+    });
+  }
+
+  function saveParsedOfficialSchedulesUI() {
+    const selected = [];
+    document.querySelectorAll('.sch-item-chk:checked').forEach(function (chk) {
+      const idx = Number(chk.getAttribute('data-idx'));
+      if (state.schParsedItems[idx] && state.schParsedItems[idx].name) selected.push(state.schParsedItems[idx]);
+    });
+    if (!selected.length) { showToast('請至少勾選一筆', 'err'); return; }
+    setLoading(true, '匯入期程資料中...');
+    google.script.run
+      .withSuccessHandler(function (res) {
+        setLoading(false);
+        if (res && res.authError) { doLogout(true); return; }
+        if (res && res.ok) {
+          closeModal('officialScheduleModal');
+          state.reminderOfficialSchedules = res.officialSchedules || [];
+          renderOfficialSchedulesTable();
+          showToast('已匯入 ' + res.count + ' 筆官方期程', 'ok');
+        } else showToast((res && res.message) || '匯入失敗', 'err');
+      })
+      .withFailureHandler(function (err) { setLoading(false); showToast('匯入異常：' + (err.message || err), 'err'); })
+      .apiBatchSaveOfficialSchedules(state.token, selected);
+  }
+
+  function deleteOfficialScheduleUI(item) {
+    if (!confirm('確定要刪除「' + item.name + '」嗎？')) return;
+    setLoading(true, '刪除中...');
+    google.script.run
+      .withSuccessHandler(function (res) {
+        setLoading(false);
+        if (res && res.authError) { doLogout(true); return; }
+        if (res && res.ok) { state.reminderOfficialSchedules = res.officialSchedules || []; renderOfficialSchedulesTable(); showToast('已刪除', 'ok'); }
+        else showToast((res && res.message) || '刪除失敗', 'err');
+      })
+      .withFailureHandler(function (err) { setLoading(false); showToast('刪除失敗：' + (err.message || err), 'err'); })
+      .apiDeleteOfficialSchedule(state.token, item.rowIndex);
+  }
+
+  function onRemTplGroupFilterChange() {
+    renderReminderTypeFilter();
+    renderReminderTemplates();
+  }
+
+  function renderReminderTypeFilter() {
+    const sel = document.getElementById('remTplTypeFilter');
+    const dl = document.getElementById('rtApplyTypeList');
+    if (!sel) return;
+    const groupFilter = document.getElementById('remTplGroupFilter').value || 'MY_SCOPE';
+    const prev = sel.value || 'ALL';
+
+    const scoped = (state.reminderTemplates || []).filter(function (t) {
+      if (groupFilter === 'MY_SCOPE') return matchesOwnerLiffGroup(t.liffGroup);
+      if (groupFilter === 'ALL') return true;
+      return t.liffGroup === groupFilter;
+    });
+
+    const typeSet = [];
+    scoped.forEach(function (t) {
+      if (t.applyType && typeSet.indexOf(t.applyType) === -1) typeSet.push(t.applyType);
+    });
+
+    sel.innerHTML = '<option value="ALL">全部申請種類（' + scoped.length + ' 階段）</option>';
+    typeSet.forEach(function (tp) {
+      const cnt = scoped.filter(function (t) { return t.applyType === tp; }).length;
+      const opt = document.createElement('option');
+      opt.value = tp; opt.textContent = tp + '（' + cnt + '）';
+      sel.appendChild(opt);
+    });
+    sel.value = (prev === 'ALL' || typeSet.indexOf(prev) !== -1) ? prev : 'ALL';
+
+    if (dl) {
+      const allTypes = [];
+      (state.reminderTemplates || []).forEach(function (t) {
+        if (t.applyType && allTypes.indexOf(t.applyType) === -1) allTypes.push(t.applyType);
+      });
+      dl.innerHTML = '';
+      allTypes.forEach(function (tp) {
+        const dopt = document.createElement('option'); dopt.value = tp; dl.appendChild(dopt);
+      });
+    }
+  }
+
+  function renderReminderTemplates() {
+    const wrap = document.getElementById('remTemplateList');
+    if (!wrap) return;
+    const editable = canEditNow();
+    const addBtn = document.getElementById('remTplAddBtn');
+    const lockNotice = document.getElementById('remTplLockNotice');
+    if (addBtn) addBtn.classList.toggle('hidden', !editable);
+    if (lockNotice) lockNotice.classList.toggle('hidden', editable);
+
+    const groupFilter = document.getElementById('remTplGroupFilter').value || 'MY_SCOPE';
+    const filterType = document.getElementById('remTplTypeFilter').value || 'ALL';
+    wrap.innerHTML = '';
+
+    const list = (state.reminderTemplates || []).filter(function (t) {
+      if (groupFilter === 'MY_SCOPE') { if (!matchesOwnerLiffGroup(t.liffGroup)) return false; }
+      else if (groupFilter !== 'ALL' && t.liffGroup !== groupFilter) return false;
+      if (filterType !== 'ALL' && t.applyType !== filterType) return false;
+      return true;
+    });
+
+    if (!list.length) {
+      wrap.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted);">尚無符合篩選條件的規則。</div>';
+      return;
+    }
+
+    list.forEach(function (tpl) {
+      const card = document.createElement('div');
+      card.className = 'faq-card is-rem' + (tpl.status === '停用' ? ' is-off' : '');
+
+      const head = document.createElement('div');
+      head.className = 'faq-head';
+      const offsetSign = Number(tpl.offsetValue) >= 0 ? ('+' + tpl.offsetValue) : String(tpl.offsetValue);
+      const timingSummary = tpl.dateFieldLabel + '（' + tpl.calcMode + ' ' + offsetSign + '）' +
+        (tpl.deadlineExpr ? ('｜截止：' + tpl.deadlineExpr) : '') +
+        '｜' + (tpl.shiftHoliday === '否' ? '不提前' : '遇假日提前') +
+        '｜' + tpl.sendHour + ':00';
+
+      const condTags = [];
+      if (tpl.showInPreview === '否') condTags.push('<span class="badge badge-cyan">預覽隱藏</span>');
+      if (tpl.condition && tpl.condition !== '全部') condTags.push('<span class="badge badge-warn">' + escapeHtml(tpl.condition) + '</span>');
+
+      head.innerHTML =
+        '<div class="faq-head-left">' +
+          '<span class="badge ' + (tpl.status === '停用' ? 'badge-off' : 'badge-on') + '">' + escapeHtml(tpl.status) + '</span>' +
+          '<span class="badge badge-day">' + escapeHtml(tpl.liffGroup) + '</span>' +
+          '<span class="badge badge-cat">' + escapeHtml(tpl.applyType) + '</span>' +
+          condTags.join('') +
+          '<strong style="font-size:14px;color:var(--charcoal);">' + escapeHtml(tpl.stageName) + '</strong>' +
+        '</div>';
+
+      if (editable) {
+        const right = document.createElement('div');
+        right.className = 'toolbar-group';
+
+        const cloneBtn = document.createElement('button');
+        cloneBtn.type = 'button'; cloneBtn.className = 'btn btn-xs'; cloneBtn.textContent = '複製新增';
+        cloneBtn.onclick = function () { openReminderTplModal(tpl, true); };
+        right.appendChild(cloneBtn);
+
+        const editBtn = document.createElement('button');
+        editBtn.type = 'button'; editBtn.className = 'btn btn-xs'; editBtn.textContent = '編輯';
+        editBtn.onclick = function () { openReminderTplModal(tpl, false); };
+        right.appendChild(editBtn);
+
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button'; delBtn.className = 'btn btn-danger btn-xs'; delBtn.textContent = '刪除';
+        delBtn.onclick = function () { deleteReminderTplUI(tpl); };
+        right.appendChild(delBtn);
+
+        head.appendChild(right);
+      }
+      card.appendChild(head);
+
+      const metaLine = document.createElement('div');
+      metaLine.className = 'hint';
+      metaLine.style.marginTop = '6px';
+      metaLine.textContent = '排程：' + timingSummary;
+      card.appendChild(metaLine);
+
+      const bodyBox = document.createElement('div');
+      bodyBox.className = 'msg-bubble';
+      bodyBox.style.marginTop = '7px';
+      bodyBox.innerHTML =
+        '<div style="font-weight:700;color:var(--charcoal);margin-bottom:4px;font-size:13.5px;">' + escapeHtml(tpl.cardTitle) + '</div>' +
+        '<div style="white-space:pre-wrap;font-size:13px;">' + escapeHtml(tpl.messageTemplate) + '</div>';
+      card.appendChild(bodyBox);
+
+      wrap.appendChild(card);
+    });
+  }
+
+  function openReminderTplModal(tpl, isClone) {
+    if (tpl) {
+      document.getElementById('remTplModalTitle').textContent = isClone ? ('複製新增規則（參考 ' + tpl.ruleId + '）') : ('編輯規則（' + tpl.ruleId + '）');
+      document.getElementById('rtRowIndex').value = isClone ? '' : tpl.rowIndex;
+      document.getElementById('rtRuleId').value = isClone ? '' : tpl.ruleId;
+      document.getElementById('rtLiffGroup').value = tpl.liffGroup || '職業訓練';
+      document.getElementById('rtApplyType').value = tpl.applyType || '';
+      document.getElementById('rtStatus').value = tpl.status === '停用' ? '停用' : '啟用';
+      document.getElementById('rtBaseDateKey').value = tpl.baseDateKey || 'startDate';
+      document.getElementById('rtDateFieldLabel').value = tpl.dateFieldLabel || '基準日期';
+      document.getElementById('rtStageName').value = isClone ? (tpl.stageName + '（新階段）') : (tpl.stageName || '');
+      document.getElementById('rtCalcMode').value = tpl.calcMode || '基準日+天數';
+      document.getElementById('rtOffsetValue').value = tpl.offsetValue !== undefined ? tpl.offsetValue : 0;
+      document.getElementById('rtDeadlineExpr').value = tpl.deadlineExpr || '';
+      document.getElementById('rtShiftHoliday').value = tpl.shiftHoliday === '否' ? '否' : '是';
+      document.getElementById('rtSendHour').value = tpl.sendHour || '09';
+      document.getElementById('rtShowInPreview').value = tpl.showInPreview === '否' ? '否' : '是';
+      document.getElementById('rtCondition').value = tpl.condition || '全部';
+      document.getElementById('rtCardTitle').value = tpl.cardTitle || '';
+      document.getElementById('rtNoteExample').value = tpl.noteExample || '';
+      document.getElementById('rtMessageTemplate').value = tpl.messageTemplate || '';
+      document.getElementById('rtButtonsRaw').value = tpl.buttonsRaw || '';
+    } else {
+      const defGrp = getActiveOwnerCfg().liffGroups[0] || '榮民就業';
+      document.getElementById('remTplModalTitle').textContent = '新增提醒規則';
+      document.getElementById('rtRowIndex').value = '';
+      document.getElementById('rtRuleId').value = '';
+      document.getElementById('rtLiffGroup').value = defGrp;
+      document.getElementById('rtApplyType').value = '';
+      document.getElementById('rtStatus').value = '啟用';
+      document.getElementById('rtBaseDateKey').value = 'startDate';
+      document.getElementById('rtDateFieldLabel').value = '基準日期';
+      document.getElementById('rtStageName').value = '';
+      document.getElementById('rtCalcMode').value = '基準日+天數';
+      document.getElementById('rtOffsetValue').value = 0;
+      document.getElementById('rtDeadlineExpr').value = '+0天';
+      document.getElementById('rtShiftHoliday').value = '是';
+      document.getElementById('rtSendHour').value = '09';
+      document.getElementById('rtShowInPreview').value = '是';
+      document.getElementById('rtCondition').value = '全部';
+      document.getElementById('rtCardTitle').value = '業務期程提醒';
+      document.getElementById('rtNoteExample').value = '';
+      document.getElementById('rtMessageTemplate').value = '{稱呼} 您好，提醒您登記的 {申請種類}（{備註}），基準日期為 {基準日}，請留意於 {截止日} 前完成相關手續。\n備註：完整規定請先詳閱退輔會官網。';
+      document.getElementById('rtButtonsRaw').value = '';
+    }
+    updateReminderLivePreview();
+    document.getElementById('reminderTplModal').classList.remove('hidden');
+  }
+
+  function insertReminderVar(varText) {
+    const ta = document.getElementById('rtMessageTemplate');
+    if (!ta) return;
+    const start = ta.selectionStart || 0;
+    const end = ta.selectionEnd || 0;
+    ta.value = ta.value.slice(0, start) + varText + ta.value.slice(end);
+    ta.focus();
+    ta.selectionStart = ta.selectionEnd = start + varText.length;
+    updateReminderLivePreview();
+  }
+
+  function updateReminderLivePreview() {
+    const pv = document.getElementById('rtLivePreview');
+    if (!pv) return;
+    const titleRaw = (document.getElementById('rtCardTitle').value || '業務期程提醒').trim();
+    const stageRaw = (document.getElementById('rtStageName').value || '階段').trim();
+    const applyType = (document.getElementById('rtApplyType').value || '業務').trim();
+    const bodyRaw = (document.getElementById('rtMessageTemplate').value || '').trim();
+    const applyDemo = function (str) {
+      return String(str || '')
+        .replace(/\{稱呼\}|\{姓名\}|\{暱稱\}|\{LINE暱稱\}/g, '王小明')
+        .replace(/\{申請種類\}|\{業務\}/g, applyType)
+        .replace(/\{階段\}/g, stageRaw)
+        .replace(/\{基準日\}/g, '2026-12-20')
+        .replace(/\{截止日\}/g, '2026-12-08')
+        .replace(/\{備註\}/g, 'OO公司－技術員');
+    };
+    pv.innerHTML =
+      '<div style="font-weight:700;color:var(--charcoal);">' + escapeHtml(applyDemo(titleRaw)) + '</div>' +
+      '<div style="font-size:11.5px;color:var(--cyan-dark);margin-bottom:6px;">' + escapeHtml(stageRaw) + '</div>' +
+      '<div>' + escapeHtml(applyDemo(bodyRaw)) + '</div>';
+  }
+
+  function saveReminderTplUI() {
+    const payload = {
+      rowIndex: document.getElementById('rtRowIndex').value ? Number(document.getElementById('rtRowIndex').value) : null,
+      ruleId: document.getElementById('rtRuleId').value.trim(),
+      status: document.getElementById('rtStatus').value,
+      liffGroup: document.getElementById('rtLiffGroup').value,
+      applyType: document.getElementById('rtApplyType').value.trim(),
+      baseDateKey: document.getElementById('rtBaseDateKey').value,
+      dateFieldLabel: document.getElementById('rtDateFieldLabel').value.trim() || '基準日期',
+      stageName: document.getElementById('rtStageName').value.trim(),
+      calcMode: document.getElementById('rtCalcMode').value,
+      offsetValue: Number(document.getElementById('rtOffsetValue').value || 0),
+      deadlineExpr: document.getElementById('rtDeadlineExpr').value.trim(),
+      shiftHoliday: document.getElementById('rtShiftHoliday').value,
+      sendHour: document.getElementById('rtSendHour').value,
+      showInPreview: document.getElementById('rtShowInPreview').value,
+      condition: document.getElementById('rtCondition').value,
+      noteExample: document.getElementById('rtNoteExample').value.trim(),
+      cardTitle: document.getElementById('rtCardTitle').value.trim(),
+      messageTemplate: document.getElementById('rtMessageTemplate').value.trim(),
+      buttonsRaw: document.getElementById('rtButtonsRaw').value.trim()
+    };
+    if (!payload.applyType || !payload.stageName || !payload.messageTemplate) {
+      showToast('請填寫申請種類、階段名稱與提醒文案', 'err'); return;
+    }
+    setLoading(true, '儲存規則中...');
+    google.script.run
+      .withSuccessHandler(function (res) {
+        setLoading(false);
+        if (res && res.authError) { doLogout(true); return; }
+        if (res && res.ok) {
+          closeModal('reminderTplModal');
+          state.reminderTemplates = res.templates || [];
+          if (res.businessTypes) state.businessTypes = res.businessTypes;
+          renderReminderTypeFilter();
+          renderReminderTemplates();
+          showToast('提醒規則已儲存', 'ok');
+        } else showToast((res && res.message) || '儲存失敗', 'err');
+      })
+      .withFailureHandler(function (err) { setLoading(false); showToast('儲存異常：' + (err.message || err), 'err'); })
+      .apiSaveReminderTemplate(state.token, payload);
+  }
+
+  function deleteReminderTplUI(tpl) {
+    if (!confirm('確定要刪除規則「' + tpl.applyType + ' - ' + tpl.stageName + '」嗎？')) return;
+    setLoading(true, '刪除中...');
+    google.script.run
+      .withSuccessHandler(function (res) {
+        setLoading(false);
+        if (res && res.authError) { doLogout(true); return; }
+        if (res && res.ok) {
+          state.reminderTemplates = res.templates || [];
+          if (res.businessTypes) state.businessTypes = res.businessTypes;
+          renderReminderTypeFilter();
+          renderReminderTemplates();
+          showToast('已刪除', 'ok');
+        } else showToast((res && res.message) || '刪除失敗', 'err');
+      })
+      .withFailureHandler(function (err) { setLoading(false); showToast('刪除失敗：' + (err.message || err), 'err'); })
+      .apiDeleteReminderTemplate(state.token, tpl.rowIndex);
+  }
+
+  function renderReminderRecords() {
+    const scopeFilter = document.getElementById('remRecScopeFilter').value || 'MY_SCOPE';
+    const stFilter = document.getElementById('remRecStatusFilter').value || 'ALL';
+    const q = (document.getElementById('remRecSearch').value || '').trim().toLowerCase();
+    const wrap = document.getElementById('remRecordList');
+    if (!wrap) return;
+    const editable = canEditNow();
+    wrap.innerHTML = '';
+
+    const list = (state.reminderRecords || []).filter(function (r) {
+      if (scopeFilter === 'MY_SCOPE' && !matchesOwnerApplyType(r.applyType, '')) return false;
+      if (stFilter !== 'ALL' && r.status !== stFilter) return false;
+      if (q) {
+        const hay = (r.caseId + ' ' + r.applicantName + ' ' + r.displayName + ' ' + r.applyType + ' ' + r.caseNote + ' ' + r.stageName).toLowerCase();
+        if (hay.indexOf(q) === -1) return false;
+      }
+      return true;
+    });
+
+    document.getElementById('remRecCountLabel').textContent = '共 ' + list.length + ' 筆';
+
+    if (!list.length) {
+      wrap.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted);">目前尚無符合條件的自動提醒名單。</div>';
+      return;
+    }
+
+    list.forEach(function (r) {
+      const card = document.createElement('div');
+      card.className = 'faq-card ' + (r.status === '待發送' ? 'is-manual' : (r.status === '發送失敗' ? 'is-manual-due' : 'is-off'));
+
+      let stCls = 'badge-off';
+      if (r.status === '待發送') stCls = 'badge-warn';
+      else if (r.status === '已發送') stCls = 'badge-on';
+      else if (r.status === '發送失敗') stCls = 'badge-err';
+
+      const head = document.createElement('div');
+      head.className = 'faq-head';
+      head.innerHTML =
+        '<div class="faq-head-left">' +
+          '<span class="badge ' + stCls + '">' + escapeHtml(r.status) + '</span>' +
+          '<span class="badge badge-cat">' + escapeHtml(r.applyType) + '</span>' +
+          '<strong style="font-size:14.5px;color:var(--charcoal);">' + escapeHtml(r.applicantName || '-') + '</strong>' +
+          (r.displayName ? ('<span style="font-size:12.5px;color:var(--muted);">（LINE：' + escapeHtml(r.displayName) + '）</span>') : '') +
+        '</div>';
+
+      if (editable) {
+        const ops = document.createElement('div');
+        ops.className = 'toolbar-group';
+
+        const sendBtn = document.createElement('button');
+        sendBtn.type = 'button'; sendBtn.className = 'btn btn-soft btn-xs';
+        sendBtn.textContent = r.status === '已發送' ? '補發' : '立即發送';
+        sendBtn.onclick = function () { sendSingleReminderUI(r); };
+        ops.appendChild(sendBtn);
+
+        if (r.status === '待發送' || r.status === '發送失敗') {
+          const cancelBtn = document.createElement('button');
+          cancelBtn.type = 'button'; cancelBtn.className = 'btn btn-danger btn-xs'; cancelBtn.textContent = '取消';
+          cancelBtn.onclick = function () { updateReminderRecordStatusUI(r, '已結案取消'); };
+          ops.appendChild(cancelBtn);
+        } else if (r.status === '已結案取消') {
+          const restoreBtn = document.createElement('button');
+          restoreBtn.type = 'button'; restoreBtn.className = 'btn btn-xs'; restoreBtn.textContent = '恢復';
+          restoreBtn.onclick = function () { updateReminderRecordStatusUI(r, '待發送'); };
+          ops.appendChild(restoreBtn);
+        }
+        head.appendChild(ops);
+      }
+      card.appendChild(head);
+
+      const info = document.createElement('div');
+      info.className = 'hint';
+      info.style.marginTop = '6px';
+      info.innerHTML =
+        '<strong>' + escapeHtml(r.stageName) + '</strong>' +
+        ' ｜ 通知日：' + escapeHtml(r.remindDate) + ' ' + escapeHtml(r.sendHour) + ':00' +
+        '<br>基準日：' + escapeHtml(r.baseDate) +
+        (r.deadlineDate && r.deadlineDate !== r.baseDate ? (' ｜ 截止日：<strong style="color:var(--err-text);">' + escapeHtml(r.deadlineDate) + '</strong>') : '') +
+        (r.caseNote ? (' ｜ 備註：' + escapeHtml(r.caseNote)) : '') +
+        (r.resultNote ? ('<br>紀錄：' + escapeHtml(r.resultNote)) : '');
+      card.appendChild(info);
+
+      wrap.appendChild(card);
+    });
+  }
+
+  function sendSingleReminderUI(rec) {
+    if (!confirm('確定要立即發送「' + rec.stageName + '」提醒卡片給 ' + rec.applicantName + ' 嗎？')) return;
+    setLoading(true, '發送提醒中...');
+    google.script.run
+      .withSuccessHandler(function (res) {
+        setLoading(false);
+        if (res && res.authError) { doLogout(true); return; }
+        if (res && res.records) state.reminderRecords = res.records;
+        if (res && res.pushStats) state.reminderPushStats = res.pushStats;
+        if (state.role === 'admin') renderReminderDashboard();
+        renderReminderRecords();
+        showToast((res && res.message) || '發送完成', (res && res.ok) ? 'ok' : 'err');
+      })
+      .withFailureHandler(function (err) { setLoading(false); showToast('發送異常：' + (err.message || err), 'err'); })
+      .apiSendSingleReminderNow(state.token, rec.rowIndex);
+  }
+
+  function updateReminderRecordStatusUI(rec, newStatus) {
+    setLoading(true, '更新狀態中...');
+    google.script.run
+      .withSuccessHandler(function (res) {
+        setLoading(false);
+        if (res && res.authError) { doLogout(true); return; }
+        if (res && res.ok) { state.reminderRecords = res.records || []; renderReminderRecords(); showToast('已更新為「' + newStatus + '」', 'ok'); }
+        else showToast((res && res.message) || '更新失敗', 'err');
+      })
+      .withFailureHandler(function (err) { setLoading(false); showToast('更新異常：' + (err.message || err), 'err'); })
+      .apiUpdateReminderRecordStatus(state.token, rec.rowIndex, newStatus);
+  }
+
+  // ==========================================
+  // Tab 4: 問答管理（預設依負責業務篩選，保留全部業務選項）
+  // ==========================================
+  function renderManageSelectors() {
+    const sel = document.getElementById('mgrCatSelect');
+    const prev = sel.value;
+    sel.innerHTML = '';
+
+    if (state.ownerProfile !== 'ALL') {
+      const myCnt = state.faqs.filter(function (f) { return matchesOwnerFaq(f); }).length;
+      const myOpt = document.createElement('option');
+      myOpt.value = 'MY_SCOPE';
+      myOpt.textContent = '我的業務（' + myCnt + ' 筆）';
+      sel.appendChild(myOpt);
+    }
+
+    const allOpt = document.createElement('option');
+    allOpt.value = 'ALL';
+    allOpt.textContent = '全部業務（' + state.faqs.length + ' 筆）';
+    sel.appendChild(allOpt);
+
+    state.categories.forEach(function (cat) {
+      const cnt = state.faqs.filter(function (f) { return f.category === cat; }).length;
+      const opt = document.createElement('option');
+      opt.value = cat; opt.textContent = cat + '（' + cnt + '）';
+      sel.appendChild(opt);
+    });
+
+    const validVals = Array.from(sel.options).map(function (o) { return o.value; });
+    if (prev && validVals.indexOf(prev) !== -1) {
+      sel.value = prev;
+    } else {
+      sel.value = state.ownerProfile === 'ALL' ? 'ALL' : 'MY_SCOPE';
+    }
+
+    const editable = canEditNow();
+    document.getElementById('mgrEditButtons').classList.toggle('hidden', !editable);
+    document.getElementById('mgrLockNotice').classList.toggle('hidden', editable);
+  }
+
+  function renderManageList() {
+    const cat = document.getElementById('mgrCatSelect').value || 'MY_SCOPE';
+    const stFilter = document.getElementById('mgrStatusFilter').value || 'ALL';
+    const q = (document.getElementById('mgrSearch').value || '').trim().toLowerCase();
+    const editable = canEditNow();
+    const wrap = document.getElementById('manageList');
+    wrap.innerHTML = '';
+
+    const list = state.faqs.filter(function (f) {
+      if (cat === 'MY_SCOPE') {
+        if (!matchesOwnerFaq(f)) return false;
+      } else if (cat !== 'ALL' && f.category !== cat) {
+        return false;
+      }
+      if (stFilter !== 'ALL' && f.status !== stFilter) return false;
+      if (q) {
+        const hay = (f.category + ' ' + f.keywords + ' ' + f.msgs.join(' ') + ' ' + f.options + ' ' + f.note).toLowerCase();
+        if (hay.indexOf(q) === -1) return false;
+      }
+      return true;
+    });
+
+    if (!list.length) {
+      wrap.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted);">尚無符合條件的問答。</div>';
+      return;
+    }
+
+    list.forEach(function (item) {
+      const card = document.createElement('div');
+      card.className = 'faq-card' + (item.status === '僅白天' ? ' is-day' : (item.status === '停用' ? ' is-off' : ''));
+
+      const head = document.createElement('div');
+      head.className = 'faq-head';
+      const left = document.createElement('div');
+      left.className = 'faq-head-left';
+
+      const stClass = item.status === '啟用' ? 'badge-on' : (item.status === '僅白天' ? 'badge-day' : 'badge-off');
+      left.innerHTML =
+        '<span class="badge ' + stClass + '">' + escapeHtml(item.status) + '</span>' +
+        '<span class="badge badge-cat">' + escapeHtml(item.category) + ' #' + item.rowIndex + '</span>';
+
+      const kwSpan = document.createElement('span');
+      kwSpan.className = 'kw-line collapsed';
+      kwSpan.textContent = item.keywords;
+      kwSpan.onclick = function () { kwSpan.classList.toggle('collapsed'); };
+      left.appendChild(kwSpan);
+      head.appendChild(left);
+
+      if (editable) {
+        const right = document.createElement('div');
+        right.className = 'toolbar-group';
+
+        const editBtn = document.createElement('button');
+        editBtn.type = 'button'; editBtn.className = 'btn btn-sm'; editBtn.textContent = '編輯';
+        editBtn.onclick = function () { openFaqModal(item); };
+        right.appendChild(editBtn);
+
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button'; delBtn.className = 'btn btn-danger btn-sm'; delBtn.textContent = '刪除';
+        delBtn.onclick = function () { deleteFaqUI(item); };
+        right.appendChild(delBtn);
+        head.appendChild(right);
+      }
+      card.appendChild(head);
+
+      const previewWrap = document.createElement('div');
+      previewWrap.style.marginTop = '10px';
+      previewWrap.style.display = 'flex';
+      previewWrap.style.flexDirection = 'column';
+      previewWrap.style.gap = '6px';
+
+      item.msgs.forEach(function (m, i) {
+        const t = String(m || '').trim();
+        if (!t) return;
+        const line = document.createElement('div');
+        line.style.fontSize = '13px';
+        line.style.padding = '8px 11px';
+        line.style.background = 'var(--surface-soft)';
+        line.style.borderRadius = '8px';
+        line.style.border = '1px solid var(--border)';
+
+        if (isFlexTag(t)) {
+          line.innerHTML = '<div class="flex-preview-title" style="margin:0;">訊息 ' + (i + 1) + '：職訓備案日小日曆試算卡</div>';
+        } else if (isImageUrl(t)) {
+          const clean = stripHash(t);
+          line.innerHTML = '<strong>圖片（訊息 ' + (i + 1) + '）</strong><br>';
+          const img = document.createElement('img'); img.className = 'img-preview'; img.src = clean;
+          img.onclick = function () { window.open(clean, '_blank'); };
+          line.appendChild(img);
+        } else if (isAudioUrl(t)) {
+          const clean = stripHash(t);
+          line.innerHTML = '<strong>語音（訊息 ' + (i + 1) + '）</strong><br><audio controls style="max-width:340px;width:100%;margin-top:4px;" src="' + escapeHtml(clean) + '"></audio>';
+        } else {
+          line.innerHTML = '<div style="white-space:pre-wrap;"><strong>訊息 ' + (i + 1) + '：</strong>' + escapeHtml(t) + '</div>';
+        }
+        previewWrap.appendChild(line);
+      });
+      card.appendChild(previewWrap);
+
+      if (item.options) {
+        const chips = document.createElement('div');
+        chips.className = 'qr-chips';
+        chips.innerHTML = '<span style="font-size:12px;color:var(--muted);">引導按鈕：</span>';
+        item.options.split(/[,，\n]/).forEach(function (op) {
+          const s = op.trim(); if (!s) return;
+          const sp = document.createElement('span'); sp.className = 'qr-chip'; sp.textContent = s;
+          chips.appendChild(sp);
+        });
+        card.appendChild(chips);
+      }
+
+      wrap.appendChild(card);
+    });
+  }
+
+  // ==========================================
+  // Modal 1: 新增／編輯問答
+  // ==========================================
+  function openFaqModal(item) {
+    const catSel = document.getElementById('editCategory');
+    catSel.innerHTML = '';
+    state.categories.forEach(function (c) {
+      const opt = document.createElement('option'); opt.value = c; opt.textContent = c; catSel.appendChild(opt);
+    });
+
+    const mgrCat = document.getElementById('mgrCatSelect').value;
+    if (item) {
+      document.getElementById('faqModalTitle').textContent = '編輯問答（' + item.category + ' #' + item.rowIndex + '）';
+      document.getElementById('editRowIndex').value = item.rowIndex;
+      catSel.value = item.category; catSel.disabled = true;
+      document.getElementById('editStatus').value = item.status || '啟用';
+      document.getElementById('editKeywords').value = item.keywords || '';
+      document.getElementById('editContact').value = item.contact || '';
+      document.getElementById('editOptions').value = item.options || '';
+      document.getElementById('editNote').value = item.note || '';
+    } else {
+      document.getElementById('faqModalTitle').textContent = '新增問答';
+      document.getElementById('editRowIndex').value = '';
+      catSel.disabled = false;
+      if (mgrCat && mgrCat !== 'ALL' && mgrCat !== 'MY_SCOPE') {
+        catSel.value = mgrCat;
+      } else {
+        const defCats = getActiveOwnerCfg().faqCats;
+        if (defCats && defCats.length && state.categories.indexOf(defCats[0]) !== -1) catSel.value = defCats[0];
+      }
+      document.getElementById('editStatus').value = '啟用';
+      document.getElementById('editKeywords').value = '';
+      document.getElementById('editContact').value = '雲林縣榮服處 05-5322742';
+      document.getElementById('editOptions').value = '';
+      document.getElementById('editNote').value = '';
+    }
+
+    document.getElementById('modalEmojiWrap').classList.add('hidden');
+    const container = document.getElementById('slotsContainer');
+    container.innerHTML = '';
+    const msgs = item ? item.msgs : ['', '', '', '', ''];
+
+    for (let i = 0; i < 5; i++) {
+      const box = document.createElement('div');
+      box.className = 'slot-box';
+      box.innerHTML =
+        '<div class="slot-top">' +
+          '<strong style="color:var(--charcoal);font-size:13.5px;">訊息 ' + (i + 1) + (i === 0 ? '（必填）' : '（選填）') + '</strong>' +
+          '<div class="toolbar-group">' +
+            '<button type="button" class="btn btn-xs" onclick="pickImageForSlot(' + i + ')">圖片</button>' +
+            '<button type="button" class="btn btn-xs" onclick="pickAudioForSlot(' + i + ')">語音</button>' +
+            '<button type="button" class="btn btn-xs" onclick="insertFlexCalcToSlot(' + i + ')">試算卡</button>' +
+            '<button type="button" class="btn btn-xs" onclick="runSlotAi(' + i + ', \'single\')">AI 潤飾</button>' +
+            '<button type="button" class="btn btn-xs" onclick="runSlotAi(' + i + ', \'multi\')">AI 拆解</button>' +
+            '<button type="button" class="btn btn-xs" onclick="pickAiAudioForSlot(' + i + ')">聽音檔</button>' +
+          '</div>' +
+        '</div>' +
+        '<textarea id="editMsg_' + i + '" class="textarea" placeholder="輸入回覆內容..."></textarea>' +
+        '<div id="slotPreview_' + i + '" class="slot-preview hidden"></div>';
+      container.appendChild(box);
+
+      const ta = box.querySelector('#editMsg_' + i);
+      ta.value = msgs[i] || '';
+      ta.onfocus = function () { state.lastFocusedTextarea = ta; };
+      ta.oninput = function () { updateSlotPreview(i); };
+      updateSlotPreview(i);
+    }
+
+    document.getElementById('faqModal').classList.remove('hidden');
+  }
+
+  function insertFlexCalcToSlot(idx) {
+    const ta = document.getElementById('editMsg_' + idx);
+    if (!ta) return;
+    ta.value = FLEX_TAG_TRAINING_CALC;
+    updateSlotPreview(idx);
+    showToast('已插入職訓備案日試算卡', 'ok');
+  }
+
+  function updateSlotPreview(idx) {
+    const ta = document.getElementById('editMsg_' + idx);
+    const pv = document.getElementById('slotPreview_' + idx);
+    const val = (ta.value || '').trim();
+    if (!val) { pv.classList.add('hidden'); pv.innerHTML = ''; return; }
+    pv.classList.remove('hidden');
+    if (isFlexTag(val)) {
+      pv.innerHTML = '<div style="color:var(--ok-text);font-weight:600;">將發送職訓備案日小日曆試算卡</div>';
+    } else if (isImageUrl(val)) {
+      const clean = stripHash(val);
+      pv.innerHTML = '<div style="color:var(--ok-text);font-weight:600;margin-bottom:4px;">將以圖片氣泡發送</div>';
+      const img = document.createElement('img'); img.className = 'img-preview'; img.src = clean;
+      img.onclick = function () { window.open(clean, '_blank'); };
+      pv.appendChild(img);
+    } else if (isAudioUrl(val)) {
+      const clean = stripHash(val);
+      pv.innerHTML = '<div style="color:var(--ok-text);font-weight:600;margin-bottom:4px;">將以語音氣泡發送</div><audio controls style="width:100%;max-width:360px;" src="' + escapeHtml(clean) + '"></audio>';
+    } else {
+      pv.innerHTML = '<span style="color:var(--muted);">目前 ' + val.length + ' 字</span>';
+    }
+  }
+
+  function saveFaqUI() {
+    const category = document.getElementById('editCategory').value;
+    const rowIndex = document.getElementById('editRowIndex').value;
+    const status = document.getElementById('editStatus').value;
+    const keywords = (document.getElementById('editKeywords').value || '').trim();
+    const contact = (document.getElementById('editContact').value || '').trim();
+    const options = (document.getElementById('editOptions').value || '').trim();
+    const note = (document.getElementById('editNote').value || '').trim();
+    const msgs = [];
+    for (let i = 0; i < 5; i++) msgs.push((document.getElementById('editMsg_' + i).value || '').trim());
+
+    if (!keywords) { showToast('請填寫觸發關鍵字', 'err'); return; }
+    if (!msgs.some(Boolean)) { showToast('請至少填寫一則回覆內容', 'err'); return; }
+
+    setLoading(true, '儲存並同步中...');
+    google.script.run
+      .withSuccessHandler(function (res) {
+        setLoading(false);
+        if (res && res.authError) { doLogout(true); return; }
+        if (res && res.ok) { closeModal('faqModal'); showToast('已儲存並同步', 'ok'); loadAllData(false); }
+        else showToast((res && res.message) || '儲存失敗', 'err');
+      })
+      .withFailureHandler(function (err) { setLoading(false); showToast('儲存異常：' + (err.message || err), 'err'); })
+      .apiSaveFaq(state.token, {
+        category: category, rowIndex: rowIndex ? Number(rowIndex) : null,
+        status: status, keywords: keywords, msgs: msgs, contact: contact, options: options, note: note
+      });
+  }
+
+  function deleteFaqUI(item) {
+    if (!confirm('確定要刪除「' + item.category + ' #' + item.rowIndex + '」嗎？')) return;
+    setLoading(true, '刪除中...');
+    google.script.run
+      .withSuccessHandler(function (res) {
+        setLoading(false);
+        if (res && res.authError) { doLogout(true); return; }
+        if (res && res.ok) { showToast('已刪除', 'ok'); loadAllData(false); }
+        else showToast((res && res.message) || '刪除失敗', 'err');
+      })
+      .withFailureHandler(function (err) { setLoading(false); showToast('刪除失敗：' + (err.message || err), 'err'); })
+      .apiDeleteFaq(state.token, item.category, item.rowIndex);
+  }
+
+  // ==========================================
+  // GitHub 媒體上傳與 AI 輔助
+  // ==========================================
+  function pickImageForSlot(slotIdx) {
+    if (!state.hasGithubConfig) { showToast('尚未設定 GitHub 空間', 'err'); return; }
+    state.pendingSlotIdx = slotIdx;
+    const inp = document.getElementById('hiddenImgInput'); inp.value = ''; inp.click();
+  }
+
+  function pickAudioForSlot(slotIdx) {
+    if (!state.hasGithubConfig) { showToast('尚未設定 GitHub 空間', 'err'); return; }
+    state.pendingSlotIdx = slotIdx;
+    const inp = document.getElementById('hiddenAudioInput'); inp.value = ''; inp.click();
+  }
+
+  function openMediaToolModal(mode) {
+    state.pendingMediaMode = mode; state.pendingSlotIdx = null;
+    document.getElementById('mediaToolResult').classList.add('hidden');
+    document.getElementById('mediaToolUrlInput').value = '';
+    document.getElementById('mediaToolPreview').innerHTML = '';
+
+    const titleEl = document.getElementById('mediaToolTitle');
+    const descEl = document.getElementById('mediaToolDesc');
+    const btnEl = document.getElementById('mediaToolPickBtn');
+    const hintEl = document.getElementById('mediaToolHint');
+
+    descEl.className = state.hasGithubConfig ? 'info-bar ok' : 'info-bar warn';
+    if (mode === 'image') {
+      titleEl.textContent = '上傳圖片轉網址';
+      descEl.textContent = state.hasGithubConfig ? ('上傳至 ' + state.githubRepo + '/images/') : '尚未設定 GitHub 媒體空間';
+      btnEl.textContent = '選擇圖片並上傳'; hintEl.textContent = '支援 PNG / JPG / WebP';
+    } else {
+      titleEl.textContent = '上傳 .m4a 語音轉網址';
+      descEl.textContent = state.hasGithubConfig ? ('上傳至 ' + state.githubRepo + '/audio/') : '尚未設定 GitHub 媒體空間';
+      btnEl.textContent = '選擇 .m4a 語音檔並上傳'; hintEl.textContent = '單檔限 10 MB 以內';
+    }
+    document.getElementById('mediaToolModal').classList.remove('hidden');
+  }
+
+  function triggerStandaloneMediaPick() {
+    if (!state.hasGithubConfig) { showToast('尚未設定 GitHub 空間', 'err'); return; }
+    state.pendingSlotIdx = null;
+    const inp = document.getElementById(state.pendingMediaMode === 'image' ? 'hiddenImgInput' : 'hiddenAudioInput');
+    inp.value = ''; inp.click();
+  }
+
+  function handleImageFilePicked(e) {
+    const file = e.target.files && e.target.files[0]; if (!file) return;
+    setLoading(true, '上傳圖片中...');
+    prepareImageDataUrl(file, function (dataUrl, errMsg) {
+      if (errMsg || !dataUrl) { setLoading(false); showToast(errMsg || '圖片讀取失敗', 'err'); return; }
+      google.script.run
+        .withSuccessHandler(function (res) {
+          setLoading(false);
+          if (res && res.authError) { doLogout(true); return; }
+          if (res && res.ok && res.url) {
+            if (state.pendingSlotIdx !== null) {
+              const ta = document.getElementById('editMsg_' + state.pendingSlotIdx);
+              if (ta) { ta.value = res.url; updateSlotPreview(state.pendingSlotIdx); }
+              showToast('圖片已上傳並填入', 'ok');
+            } else {
+              document.getElementById('mediaToolUrlInput').value = res.url;
+              const pv = document.getElementById('mediaToolPreview'); pv.innerHTML = '';
+              const img = document.createElement('img'); img.className = 'img-preview'; img.src = res.url;
+              pv.appendChild(img);
+              document.getElementById('mediaToolResult').classList.remove('hidden');
+              showToast('圖片上傳成功', 'ok');
+            }
+          } else showToast((res && res.message) || '上傳失敗', 'err');
+        })
+        .withFailureHandler(function (err) { setLoading(false); showToast('上傳異常：' + (err.message || err), 'err'); })
+        .apiUploadImage(state.token, dataUrl, file.name);
+    });
+  }
+
+  function prepareImageDataUrl(file, cb) {
+    const reader = new FileReader();
+    reader.onload = function (ev) {
+      const rawUrl = ev.target.result;
+      const img = new Image();
+      img.onload = function () {
+        const w = img.naturalWidth || img.width, h = img.naturalHeight || img.height, maxSide = 1600;
+        if (file.type === 'image/png' && file.size <= 2 * 1024 * 1024 && w <= 1800 && h <= 1800) { cb(rawUrl, null); return; }
+        if (file.size <= 1.2 * 1024 * 1024 && w <= maxSide && h <= maxSide) { cb(rawUrl, null); return; }
+        let tw = w, th = h;
+        if (w > maxSide || h > maxSide) {
+          const r = Math.min(maxSide / w, maxSide / h); tw = Math.round(w * r); th = Math.round(h * r);
+        }
+        const c = document.createElement('canvas'); c.width = tw; c.height = th;
+        const ctx = c.getContext('2d'); ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0, 0, tw, th); ctx.drawImage(img, 0, 0, tw, th);
+        cb(c.toDataURL('image/jpeg', 0.88), null);
+      };
+      img.onerror = function () { cb(null, '無法解析此圖片格式'); };
+      img.src = rawUrl;
+    };
+    reader.onerror = function () { cb(null, '讀取本機圖片失敗'); };
+    reader.readAsDataURL(file);
+  }
+
+  function handleAudioFilePicked(e) {
+    const file = e.target.files && e.target.files[0]; if (!file) return;
+    if (file.size > 10 * 1024 * 1024) { showToast('語音檔超過 10 MB 上限', 'err'); return; }
+    setLoading(true, '上傳語音檔中...');
+    detectAudioDurationMs(file, function (durMs) {
+      const reader = new FileReader();
+      reader.onload = function (ev) {
+        google.script.run
+          .withSuccessHandler(function (res) {
+            setLoading(false);
+            if (res && res.authError) { doLogout(true); return; }
+            if (res && res.ok && res.url) {
+              if (state.pendingSlotIdx !== null) {
+                const ta = document.getElementById('editMsg_' + state.pendingSlotIdx);
+                if (ta) { ta.value = res.url; updateSlotPreview(state.pendingSlotIdx); }
+                showToast('語音已上傳並填入', 'ok');
+              } else {
+                document.getElementById('mediaToolUrlInput').value = res.url;
+                document.getElementById('mediaToolPreview').innerHTML = '<audio controls style="width:100%;" src="' + escapeHtml(stripHash(res.url)) + '"></audio>';
+                document.getElementById('mediaToolResult').classList.remove('hidden');
+                showToast('語音上傳成功', 'ok');
+              }
+            } else showToast((res && res.message) || '上傳失敗', 'err');
+          })
+          .withFailureHandler(function (err) { setLoading(false); showToast('上傳異常：' + (err.message || err), 'err'); })
+          .apiUploadAudioToGithub(state.token, ev.target.result, file.name, durMs);
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function detectAudioDurationMs(file, cb) {
+    try {
+      const url = URL.createObjectURL(file);
+      const audio = document.createElement('audio'); audio.preload = 'metadata';
+      audio.onloadedmetadata = function () { URL.revokeObjectURL(url); cb(Math.round((isFinite(audio.duration) ? audio.duration : 60) * 1000)); };
+      audio.onerror = function () { URL.revokeObjectURL(url); cb(60000); };
+      audio.src = url;
+    } catch (e) { cb(60000); }
+  }
+
+  function pickAiAudioForSlot(slotIdx) {
+    if (!state.hasGeminiKey) { showToast('尚未設定 Gemini API Key', 'err'); return; }
+    state.pendingAiSlotIdx = slotIdx;
+    const inp = document.getElementById('hiddenAiAudioInput'); inp.value = ''; inp.click();
+  }
+
+  function pickBatchAudioFile() {
+    state.pendingAiSlotIdx = -1;
+    const inp = document.getElementById('hiddenAiAudioInput'); inp.value = ''; inp.click();
+  }
+
+  function handleAiAudioFilePicked(e) {
+    const file = e.target.files && e.target.files[0]; if (!file) return;
+    if (file.size > 11 * 1024 * 1024) { showToast('音檔超過 11 MB 上限', 'err'); return; }
+    const reader = new FileReader();
+    reader.onload = function (ev) {
+      if (state.pendingAiSlotIdx === -1) {
+        state.batchAudioB64 = ev.target.result;
+        state.batchAudioMime = file.type || 'audio/mp4';
+        document.getElementById('batchAudioName').textContent = file.name;
+      } else {
+        callSlotAiServer(state.pendingAiSlotIdx, 'multi', ev.target.result, file.type || 'audio/mp4');
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function runSlotAi(slotIdx, outputMode) {
+    if (!state.hasGeminiKey) { showToast('尚未設定 Gemini API Key', 'err'); return; }
+    callSlotAiServer(slotIdx, outputMode, '', '');
+  }
+
+  function callSlotAiServer(slotIdx, outputMode, audioB64, audioMime) {
+    const allMsgs = [];
+    for (let i = 0; i < 5; i++) allMsgs.push((document.getElementById('editMsg_' + i).value || '').trim());
+    const slotText = allMsgs[slotIdx];
+    if (!slotText && !audioB64) { showToast('請先填入文字或音檔', 'err'); return; }
+
+    setLoading(true, 'AI 分析中...');
+    google.script.run
+      .withSuccessHandler(function (res) {
+        setLoading(false);
+        if (res && res.authError) { doLogout(true); return; }
+        if (!res || !res.ok) { showToast((res && res.message) || 'AI 分析失敗', 'err'); return; }
+        if (res.mode === 'single') {
+          if (res.text) { document.getElementById('editMsg_' + slotIdx).value = res.text; updateSlotPreview(slotIdx); }
+          if (res.suggestedKeywords && !document.getElementById('editKeywords').value.trim()) document.getElementById('editKeywords').value = res.suggestedKeywords;
+          if (res.contact && !document.getElementById('editContact').value.trim()) document.getElementById('editContact').value = res.contact;
+          showToast('潤飾完成', 'ok');
+        } else if (res.result) {
+          const r = res.result;
+          if (r.keywords && !document.getElementById('editKeywords').value.trim()) document.getElementById('editKeywords').value = r.keywords;
+          if (r.contact && !document.getElementById('editContact').value.trim()) document.getElementById('editContact').value = r.contact;
+          if (r.options && !document.getElementById('editOptions').value.trim()) document.getElementById('editOptions').value = r.options;
+          const keepSpecial = (isAudioUrl(slotText) || isImageUrl(slotText) || isFlexTag(slotText)) ? [slotText] : [];
+          const merged = (r.msgs || []).concat(keepSpecial).slice(0, 5);
+          for (let i = 0; i < 5; i++) { document.getElementById('editMsg_' + i).value = merged[i] || ''; updateSlotPreview(i); }
+          showToast('已自動拆解為 ' + merged.length + ' 則訊息', 'ok');
+        }
+      })
+      .withFailureHandler(function (err) { setLoading(false); showToast('AI 異常：' + (err.message || err), 'err'); })
+      .apiAiAnalyzeSlot(state.token, {
+        category: document.getElementById('editCategory').value,
+        slotIndex: slotIdx, slotText: slotText, outputMode: outputMode,
+        existingKeywords: document.getElementById('editKeywords').value,
+        allMsgs: allMsgs, audioBase64: audioB64 || '', audioMimeType: audioMime || 'audio/mp4'
+      });
+  }
+
+  function openAiBatchModal() {
+    if (!state.hasGeminiKey) { showToast('尚未設定 Gemini API Key', 'err'); return; }
+    const sel = document.getElementById('batchCat'); sel.innerHTML = '';
+    state.categories.forEach(function (c) { const o = document.createElement('option'); o.value = c; o.textContent = c; sel.appendChild(o); });
+    const mgrCat = document.getElementById('mgrCatSelect').value;
+    if (mgrCat && mgrCat !== 'ALL' && mgrCat !== 'MY_SCOPE') sel.value = mgrCat;
+    document.getElementById('batchRawText').value = '';
+    state.batchAudioB64 = ''; state.batchItems = [];
+    document.getElementById('batchAudioName').textContent = '未選擇音檔';
+    document.getElementById('batchPreviewWrap').classList.add('hidden');
+    document.getElementById('batchSaveBtn').classList.add('hidden');
+    document.getElementById('aiBatchModal').classList.remove('hidden');
+  }
+
+  function runAiBatchAnalyze() {
+    const raw = (document.getElementById('batchRawText').value || '').trim();
+    if (!raw && !state.batchAudioB64) { showToast('請貼上文字或附加音檔', 'err'); return; }
+    setLoading(true, 'AI 拆解問答中...');
+    google.script.run
+      .withSuccessHandler(function (res) {
+        setLoading(false);
+        if (res && res.authError) { doLogout(true); return; }
+        if (!res || !res.ok || !res.items || !res.items.length) { showToast((res && res.message) || '未能拆解出問答', 'err'); return; }
+        state.batchItems = res.items;
+        document.getElementById('batchResultInfo').textContent = '已拆解出 ' + res.items.length + ' 筆問答，確認後勾選寫入：';
+        const list = document.getElementById('batchPreviewList'); list.innerHTML = '';
+        res.items.forEach(function (it, idx) {
+          const div = document.createElement('div'); div.className = 'faq-card';
+          div.innerHTML =
+            '<label style="display:flex;align-items:center;gap:8px;font-weight:700;margin-bottom:6px;cursor:pointer;">' +
+              '<input type="checkbox" class="batch-item-chk" data-idx="' + idx + '" checked>' +
+              '<span>#' + (idx + 1) + ' ' + escapeHtml(it.keywords) + '</span>' +
+            '</label>' +
+            it.msgs.map(function (m, mi) {
+              return '<div style="font-size:13px;background:var(--surface-soft);padding:6px 8px;border-radius:6px;margin-top:4px;white-space:pre-wrap;">訊息 ' + (mi + 1) + '：' + escapeHtml(m) + '</div>';
+            }).join('');
+          list.appendChild(div);
+        });
+        document.getElementById('batchPreviewWrap').classList.remove('hidden');
+        document.getElementById('batchSaveBtn').classList.remove('hidden');
+      })
+      .withFailureHandler(function (err) { setLoading(false); showToast('拆解異常：' + (err.message || err), 'err'); })
+      .apiAiAnalyzeBatch(state.token, document.getElementById('batchCat').value, raw, document.getElementById('batchBuildMenu').checked, state.batchAudioB64, '', state.batchAudioMime);
+  }
+
+  function saveAiBatchItems() {
+    const selected = [];
+    document.querySelectorAll('.batch-item-chk:checked').forEach(function (chk) {
+      const idx = Number(chk.getAttribute('data-idx'));
+      if (state.batchItems[idx]) selected.push(state.batchItems[idx]);
+    });
+    if (!selected.length) { showToast('請至少勾選一筆', 'err'); return; }
+    setLoading(true, '寫入試算表中...');
+    google.script.run
+      .withSuccessHandler(function (res) {
+        setLoading(false);
+        if (res && res.authError) { doLogout(true); return; }
+        if (res && res.ok) { closeModal('aiBatchModal'); showToast('已寫入 ' + res.count + ' 筆問答', 'ok'); loadAllData(false); }
+        else showToast((res && res.message) || '寫入失敗', 'err');
+      })
+      .withFailureHandler(function (err) { setLoading(false); showToast('寫入失敗：' + (err.message || err), 'err'); })
+      .apiBatchSaveFaqs(state.token, document.getElementById('batchCat').value, selected, document.getElementById('batchStatus').value);
+  }
+
+  // ==========================================
+  // ⚙️ 管理者：健檢、連線診斷與系統設定
+  // ==========================================
+  function renderHealthTable() {
+    const sum = document.getElementById('healthSummary');
+    const tbody = document.getElementById('healthTableBody');
+    if (!sum || !tbody) return;
+    const list = state.healthReport || [];
+    const okCnt = list.filter(function (r) { return r.status === 'OK'; }).length;
+    const warnCnt = list.filter(function (r) { return r.status === 'WARN'; }).length;
+    const errCnt = list.filter(function (r) { return r.status === 'ERROR'; }).length;
+
+    sum.innerHTML =
+      '<div class="stat-card"><div class="stat-label">總連結數</div><div class="stat-val">' + list.length + ' 筆</div></div>' +
+      '<div class="stat-card"><div class="stat-label">正常</div><div class="stat-val" style="color:var(--ok-text);">' + okCnt + ' 筆</div></div>' +
+      '<div class="stat-card"><div class="stat-label">待確認</div><div class="stat-val" style="color:var(--warn-text);">' + warnCnt + ' 筆</div></div>' +
+      '<div class="stat-card"><div class="stat-label">失效</div><div class="stat-val" style="color:var(--err-text);">' + errCnt + ' 筆</div></div>';
+
+    if (!list.length) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px;">尚未執行健檢。</td></tr>';
+      return;
+    }
+    tbody.innerHTML = list.map(function (r) {
+      const cls = r.status === 'OK' ? 'badge-on' : (r.status === 'WARN' ? 'badge-warn' : 'badge-err');
+      return '<tr><td>' + escapeHtml(r.checkedAt) + '</td><td>' + escapeHtml(r.category) + '</td><td>第 ' + r.rowIndex + ' 列 ' + escapeHtml(r.colName) + '</td>' +
+        '<td><span class="badge ' + cls + '">' + escapeHtml(r.status) + '</span></td>' +
+        '<td style="word-break:break-all;max-width:320px;"><a href="' + escapeHtml(r.url) + '" target="_blank">' + escapeHtml(r.url) + '</a></td><td>' + escapeHtml(r.detail) + '</td></tr>';
+    }).join('');
+  }
+
+  function runHealthCheckUI() {
+    setLoading(true, '檢測全站網址與媒體連結中...');
+    google.script.run
+      .withSuccessHandler(function (res) {
+        setLoading(false);
+        if (res && res.authError) { doLogout(true); return; }
+        if (res && res.ok) { state.healthReport = res.healthReport || []; renderHealthTable(); showToast('健檢完成', 'ok'); }
+        else showToast((res && res.message) || '健檢失敗', 'err');
+      })
+      .withFailureHandler(function (err) { setLoading(false); showToast('健檢異常：' + (err.message || err), 'err'); })
+      .apiRunHealthCheck(state.token);
+  }
+
+  function loadWebhookDiag() {
+    setLoading(true, '讀取 LINE 連線診斷...');
+    google.script.run
+      .withSuccessHandler(function (res) {
+        setLoading(false);
+        if (res && res.authError) { doLogout(true); return; }
+        if (!res || !res.ok) return;
+
+        document.getElementById('diagStats').innerHTML =
+          '<div class="stat-card"><div class="stat-label">現在時間</div><div class="stat-val" style="font-size:14px;">' + escapeHtml(res.nowStr) + '（週' + escapeHtml(res.dayLabel) + '）</div></div>' +
+          '<div class="stat-card"><div class="stat-label">目前判定</div><div class="stat-val" style="font-size:14px;">' + (res.willAutoReplyNow ? '自動回覆時段' : '上班時段') + '</div></div>' +
+          '<div class="stat-card"><div class="stat-label">假日筆數</div><div class="stat-val" style="font-size:14px;">' + (res.holidayCount || 0) + ' 筆</div></div>' +
+          '<div class="stat-card" style="grid-column:1/-1;"><div class="stat-label">LINE 連線狀態</div><div class="stat-val" style="font-size:14px;">' + escapeHtml(res.tokenStatus) + '</div></div>';
+
+        const tbody = document.getElementById('diagLogsBody');
+        const logs = res.logs || [];
+        tbody.innerHTML = logs.length
+          ? logs.map(function (l) { return '<tr><td>' + escapeHtml(l.time) + '</td><td><strong>' + escapeHtml(l.status) + '</strong></td><td>' + escapeHtml(l.detail) + '</td></tr>'; }).join('')
+          : '<tr><td colspan="3" style="text-align:center;color:var(--muted);padding:18px;">尚無近期紀錄。</td></tr>';
+      })
+      .withFailureHandler(function (err) { setLoading(false); showToast('讀取失敗：' + (err.message || err), 'err'); })
+      .apiGetWebhookDiag(state.token);
+  }
+
+  function clearCooldownsUI() {
+    setLoading(true, '清除快取中...');
+    google.script.run
+      .withSuccessHandler(function (res) {
+        setLoading(false);
+        if (res && res.authError) { doLogout(true); return; }
+        showToast('快取與冷卻已清除', 'ok');
+        loadWebhookDiag();
+      })
+      .withFailureHandler(function (err) { setLoading(false); showToast('清除失敗：' + (err.message || err), 'err'); })
+      .apiClearCooldowns(state.token);
+  }
+
+  function renderSettingsView() {
+    const s = state.settings || {};
+    const allow = String(s.allowStaffEdit).toLowerCase() !== 'false';
+    document.getElementById('setAllowStaffEdit').checked = allow;
+    document.getElementById('staffEditLabel').textContent = allow ? '已開放' : '已鎖定';
+
+    document.getElementById('setGithubInfo').textContent = state.hasGithubConfig ? state.githubRepo : '尚未設定';
+    document.getElementById('setGeminiInfo').textContent = state.hasGeminiKey ? (state.activeGeminiModel || '已設定') : '尚未設定';
+    document.getElementById('setTgStatusInfo').textContent = state.hasTelegramConfig ? '已連線' : '未設定 Token';
+
+    document.getElementById('setTgIdsVeteranEmp').value = s.tgIdsVeteranEmp || '';
+    document.getElementById('setTgIdsClass2Cpas').value = s.tgIdsClass2Cpas || '';
+    document.getElementById('setTgIdsTrainEduExam').value = s.tgIdsTrainEduExam || '';
+    document.getElementById('setDefaultTelegramIds').value = s.defaultTelegramIds || '';
+
+    document.getElementById('setLiffChannelId').value = s.liffChannelId || '';
+    document.getElementById('setLiffUrl').value = s.liffUrl || '';
+    document.getElementById('setPushMonthlyLimit').value = s.pushMonthlyLimit || '200';
+    document.getElementById('setOaChatUrl').value = s.oaChatUrl || 'https://chat.line.biz/';
+
+    document.getElementById('setGeminiApiKey').value = s.geminiApiKey || '';
+    document.getElementById('setTelegramBotToken').value = s.telegramBotToken || '';
+    document.getElementById('setGroupDraftMaxRows').value = s.groupDraftMaxRows || '100';
+    document.getElementById('setDmDaytimeAssist').value = String(s.dmDaytimeAssistEnabled).toLowerCase() === 'false' ? 'false' : 'true';
+    document.getElementById('setGroupAssistEnabled').value = String(s.groupAssistantEnabled).toLowerCase() === 'false' ? 'false' : 'true';
+    document.getElementById('setGroupWorkHoursOnly').value = String(s.groupWorkHoursOnly).toLowerCase() === 'false' ? 'false' : 'true';
+    document.getElementById('setGroupTriggerWords').value = s.groupTriggerWords || '';
+    document.getElementById('setGroupIgnoreWords').value = s.groupIgnoreWords || '';
+
+    document.getElementById('setWorkDays').value = s.workDays || '1,2,3,4,5';
+    document.getElementById('setWorkStart').value = s.workStart || '08:00';
+    document.getElementById('setWorkEnd').value = s.workEnd || '17:00';
+    document.getElementById('setTestMode').value = String(s.testMode).toLowerCase() === 'true' ? 'true' : 'false';
+    document.getElementById('setCooldown').value = s.cooldownMinutes || '60';
+    document.getElementById('setIgnoreSticker').value = String(s.ignoreSticker).toLowerCase() === 'false' ? 'false' : 'true';
+    document.getElementById('setSenderName').value = s.senderName || '系統自動回覆';
+    document.getElementById('setPrefixText').value = s.prefixText !== undefined ? s.prefixText : '';
+    document.getElementById('setAlertEmail').value = s.alertEmail || '';
+    document.getElementById('setDefaultQuickReplies').value = s.defaultQuickReplies || '';
+    document.getElementById('setDefaultReply').value = s.defaultReply || '';
+    document.getElementById('setMediaReply').value = s.mediaReply || '';
+    document.getElementById('setBlacklist').value = s.blacklist || '';
+    document.getElementById('setAiContext').value = s.aiSystemContext || state.defaultAiSystemContext || '';
+
+    renderHolidaysTable();
+    renderCatManageList();
+  }
+
+  function toggleStaffEditUI(allow) {
+    setLoading(true, '更新權限中...');
+    google.script.run
+      .withSuccessHandler(function (res) {
+        setLoading(false);
+        if (res && res.authError) { doLogout(true); return; }
+        if (res && res.ok) {
+          state.settings.allowStaffEdit = res.allowStaffEdit;
+          document.getElementById('staffEditLabel').textContent = allow ? '已開放' : '已鎖定';
+          showToast(allow ? '已開放同仁編輯' : '已鎖定同仁編輯', 'ok');
+        } else showToast((res && res.message) || '更新失敗', 'err');
+      })
+      .withFailureHandler(function (err) { setLoading(false); showToast('更新失敗：' + (err.message || err), 'err'); })
+      .apiToggleStaffEdit(state.token, allow);
+  }
+
+  function refreshGeminiModelUI() {
+    setLoading(true, '重測模型中...');
+    google.script.run
+      .withSuccessHandler(function (res) {
+        setLoading(false);
+        if (res && res.ok) {
+          state.activeGeminiModel = res.activeModel;
+          document.getElementById('setGeminiInfo').textContent = res.activeModel;
+          showToast('已更新模型：' + res.activeModel, 'ok');
+        } else showToast((res && res.message) || '偵測失敗', 'err');
+      })
+      .withFailureHandler(function (err) { setLoading(false); showToast('偵測失敗：' + (err.message || err), 'err'); })
+      .apiRefreshGeminiModels(state.token);
+  }
+
+  function resetAiContextDefault() {
+    document.getElementById('setAiContext').value = state.defaultAiSystemContext || '';
+    showToast('已還原預設內容，請按儲存設定');
+  }
+
+  function saveSettingsUI() {
+    const payload = {
+      tgIdsVeteranEmp: document.getElementById('setTgIdsVeteranEmp').value.trim(),
+      tgIdsClass2Cpas: document.getElementById('setTgIdsClass2Cpas').value.trim(),
+      tgIdsTrainEduExam: document.getElementById('setTgIdsTrainEduExam').value.trim(),
+      defaultTelegramIds: document.getElementById('setDefaultTelegramIds').value.trim(),
+      liffChannelId: document.getElementById('setLiffChannelId').value.trim(),
+      liffUrl: document.getElementById('setLiffUrl').value.trim(),
+      pushMonthlyLimit: document.getElementById('setPushMonthlyLimit').value.trim() || '200',
+      oaChatUrl: document.getElementById('setOaChatUrl').value.trim() || 'https://chat.line.biz/',
+      geminiApiKey: document.getElementById('setGeminiApiKey').value.trim(),
+      telegramBotToken: document.getElementById('setTelegramBotToken').value.trim(),
+      groupDraftMaxRows: document.getElementById('setGroupDraftMaxRows').value.trim(),
+      dmDaytimeAssistEnabled: document.getElementById('setDmDaytimeAssist').value,
+      groupAssistantEnabled: document.getElementById('setGroupAssistEnabled').value,
+      groupWorkHoursOnly: document.getElementById('setGroupWorkHoursOnly').value,
+      groupTriggerWords: document.getElementById('setGroupTriggerWords').value.trim(),
+      groupIgnoreWords: document.getElementById('setGroupIgnoreWords').value.trim(),
+      workDays: document.getElementById('setWorkDays').value.trim(),
+      workStart: document.getElementById('setWorkStart').value.trim(),
+      workEnd: document.getElementById('setWorkEnd').value.trim(),
+      testMode: document.getElementById('setTestMode').value,
+      cooldownMinutes: document.getElementById('setCooldown').value.trim(),
+      ignoreSticker: document.getElementById('setIgnoreSticker').value,
+      senderName: document.getElementById('setSenderName').value.trim(),
+      prefixText: document.getElementById('setPrefixText').value.trim(),
+      alertEmail: document.getElementById('setAlertEmail').value.trim(),
+      defaultQuickReplies: document.getElementById('setDefaultQuickReplies').value.trim(),
+      defaultReply: document.getElementById('setDefaultReply').value.trim(),
+      mediaReply: document.getElementById('setMediaReply').value.trim(),
+      blacklist: document.getElementById('setBlacklist').value.trim(),
+      aiSystemContext: document.getElementById('setAiContext').value.trim()
+    };
+    setLoading(true, '儲存設定中...');
+    google.script.run
+      .withSuccessHandler(function (res) {
+        setLoading(false);
+        if (res && res.authError) { doLogout(true); return; }
+        if (res && res.ok) { showToast('設定已儲存並立即生效', 'ok'); loadAllData(false); }
+        else showToast((res && res.message) || '儲存失敗', 'err');
+      })
+      .withFailureHandler(function (err) { setLoading(false); showToast('儲存失敗：' + (err.message || err), 'err'); })
+      .apiSaveSettings(state.token, payload);
+  }
+
+  function renderHolidaysTable() {
+    const tbody = document.getElementById('holidayTableBody');
+    const list = state.holidays || [];
+    const badge = document.getElementById('holidayCountBadge');
+    if (badge) badge.textContent = list.length + ' 筆';
+    if (!list.length) {
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:16px;">尚無假日資料。</td></tr>';
+      return;
+    }
+    tbody.innerHTML = list.map(function (h, idx) {
+      return '<tr><td>' + escapeHtml(h.date) + '</td><td><span class="badge ' + (h.type === '補班' ? 'badge-warn' : 'badge-on') + '">' + escapeHtml(h.type) + '</span></td>' +
+        '<td>' + escapeHtml(h.note) + '</td><td><button type="button" class="btn btn-danger btn-xs" onclick="removeHolidayRow(' + idx + ')">刪除</button></td></tr>';
+    }).join('');
+  }
+
+  function addHolidayRow() {
+    const d = document.getElementById('newHolDate').value;
+    const t = document.getElementById('newHolType').value;
+    const n = document.getElementById('newHolNote').value.trim();
+    if (!d) { showToast('請先選擇日期', 'err'); return; }
+    state.holidays = state.holidays.filter(function (h) { return h.date !== d; });
+    state.holidays.push({ date: d, type: t, note: n || (t === '放假' ? '特別放假' : '補行上班') });
+    state.holidays.sort(function (a, b) { return a.date.localeCompare(b.date); });
+    document.getElementById('newHolNote').value = '';
+    renderHolidaysTable();
+  }
+
+  function removeHolidayRow(idx) { state.holidays.splice(idx, 1); renderHolidaysTable(); }
+
+  function saveHolidaysUI() {
+    setLoading(true, '儲存假日表中...');
+    google.script.run
+      .withSuccessHandler(function (res) {
+        setLoading(false);
+        if (res && res.authError) { doLogout(true); return; }
+        if (res && res.ok) showToast('假日表已儲存', 'ok');
+        else showToast((res && res.message) || '儲存失敗', 'err');
+      })
+      .withFailureHandler(function (err) { setLoading(false); showToast('儲存失敗：' + (err.message || err), 'err'); })
+      .apiSaveHolidays(state.token, state.holidays);
+  }
+
+  function importGovHolidaysUI() {
+    const y = document.getElementById('importYearSelect').value;
+    setLoading(true, '匯入 ' + y + ' 年度行事曆...');
+    google.script.run
+      .withSuccessHandler(function (res) {
+        setLoading(false);
+        if (res && res.authError) { doLogout(true); return; }
+        if (res && res.ok) { state.holidays = res.holidays || []; renderHolidaysTable(); showToast('已匯入 ' + res.count + ' 筆假日', 'ok'); }
+        else showToast((res && res.message) || '匯入失敗', 'err');
+      })
+      .withFailureHandler(function (err) { setLoading(false); showToast('匯入異常：' + (err.message || err), 'err'); })
+      .apiImportGovHolidays(state.token, y);
+  }
+
+  function pickIcsHolidayFile() { const inp = document.getElementById('hiddenIcsInput'); inp.value = ''; inp.click(); }
+
+  function handleIcsFilePicked(e) {
+    const file = e.target.files && e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function (ev) {
+      const icsText = String(ev.target.result || '');
+      if (icsText.indexOf('BEGIN:VEVENT') === -1) { showToast('檔案格式不符', 'err'); return; }
+      setLoading(true, '解析 .ics 檔案中...');
+      google.script.run
+        .withSuccessHandler(function (res) {
+          setLoading(false);
+          if (res && res.authError) { doLogout(true); return; }
+          if (res && res.ok) { state.holidays = res.holidays || []; renderHolidaysTable(); showToast('已匯入 ' + res.count + ' 筆假日', 'ok'); }
+          else showToast((res && res.message) || '匯入失敗', 'err');
+        })
+        .withFailureHandler(function (err) { setLoading(false); showToast('匯入異常：' + (err.message || err), 'err'); })
+        .apiImportIcsHolidays(state.token, icsText);
+    };
+    reader.readAsText(file, 'UTF-8');
+  }
+
+  function renderCatManageList() {
+    const wrap = document.getElementById('catManageList'); wrap.innerHTML = '';
+    state.categories.forEach(function (cat) {
+      const chip = document.createElement('div');
+      chip.className = 'cat-pill';
+      chip.style.display = 'inline-flex'; chip.style.alignItems = 'center'; chip.style.gap = '8px';
+      chip.innerHTML = '<span>' + escapeHtml(cat) + '</span>';
+      const del = document.createElement('button');
+      del.type = 'button'; del.className = 'btn btn-danger btn-xs'; del.textContent = '移除';
+      del.onclick = function () { deleteCategoryUI(cat); };
+      chip.appendChild(del);
+      wrap.appendChild(chip);
+    });
+  }
+
+  function addCategoryUI() {
+    const name = (document.getElementById('newCatInput').value || '').trim();
+    if (!name) { showToast('請輸入分類名稱', 'err'); return; }
+    setLoading(true, '建立分類中...');
+    google.script.run
+      .withSuccessHandler(function (res) {
+        setLoading(false);
+        if (res && res.authError) { doLogout(true); return; }
+        if (res && res.ok) { document.getElementById('newCatInput').value = ''; showToast('已新增分類', 'ok'); loadAllData(false); }
+        else showToast((res && res.message) || '新增失敗', 'err');
+      })
+      .withFailureHandler(function (err) { setLoading(false); showToast('新增失敗：' + (err.message || err), 'err'); })
+      .apiAddCategory(state.token, name);
+  }
+
+  function deleteCategoryUI(cat) {
+    if (!confirm('確定要刪除整個「FAQ_' + cat + '」分頁嗎？此動作無法復原。')) return;
+    setLoading(true, '刪除分類中...');
+    google.script.run
+      .withSuccessHandler(function (res) {
+        setLoading(false);
+        if (res && res.authError) { doLogout(true); return; }
+        if (res && res.ok) { showToast('已刪除分類', 'ok'); loadAllData(false); }
+        else showToast((res && res.message) || '刪除失敗', 'err');
+      })
+      .withFailureHandler(function (err) { setLoading(false); showToast('刪除失敗：' + (err.message || err), 'err'); })
+      .apiDeleteCategory(state.token, cat);
+  }
+</script>
+</body>
+</html>
+<!-- =====【admin/index.html 完整版結束】===== -->
