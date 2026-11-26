@@ -44,7 +44,7 @@
 
     .hidden { display: none !important; }
 
-    /* Header */
+     
     .header {
       background: linear-gradient(135deg, #2F4F3E 0%, #4F6757 100%);
       color: #FFF;
@@ -64,10 +64,10 @@
     .header h1 { margin: 0; font-size: 20px; font-weight: 800; letter-spacing: 0.3px; }
     .header p { margin: 4px 0 0; font-size: 13px; color: #E2EFE6; }
 
-    /* Container */
+     
     .container { max-width: 560px; margin: 14px auto 0; padding: 0 14px; }
 
-    /* User Bar */
+     
     .user-bar {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -91,7 +91,7 @@
     .user-name { font-weight: 700; font-size: 15px; color: var(--primary-dark); }
     .user-sub { font-size: 12px; color: var(--muted); }
 
-    /* Alert Banner */
+     
     .banner {
       border-radius: 12px;
       padding: 12px 14px;
@@ -103,7 +103,7 @@
     .banner-err { background: var(--err-bg); border-color: var(--err-border); color: var(--err-text); }
     .banner-ok { background: var(--ok-bg); border-color: #B7DFB9; color: var(--ok-text); }
 
-    /* Top Tabs */
+     
     .tabs {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -130,7 +130,7 @@
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
     }
 
-    /* 6-Section Group Switcher */
+     
     .group-tabs {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -157,7 +157,7 @@
       box-shadow: 0 2px 8px rgba(79, 103, 87, 0.22);
     }
 
-    /* Card */
+     
     .card {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -167,7 +167,7 @@
       margin-bottom: 14px;
     }
 
-    /* Collapsible Official Schedule Panel */
+     
     .helper-details {
       background: #F4F8F5;
       border: 1.5px solid #C6DACD;
@@ -197,7 +197,7 @@
     .helper-details[open] summary .toggle-hint::before { content: "收合 ▴"; }
     .helper-details:not([open]) summary .toggle-hint::before { content: "點擊展開 ▾"; }
 
-    /* Sub-panel */
+     
     .helper-panel {
       background: #F4F8F5;
       border: 1.5px solid #C6DACD;
@@ -212,7 +212,7 @@
       margin-bottom: 8px;
     }
 
-    /* Form */
+     
     .field { margin-bottom: 15px; }
     .field label {
       display: block;
@@ -260,7 +260,7 @@
     }
     .date-grid .field { margin-bottom: 0; }
 
-    /* Preselected Tag */
+     
     .preselect-pill {
       display: inline-block;
       margin-top: 6px;
@@ -274,7 +274,7 @@
       line-height: 1.45;
     }
 
-    /* Preview & Stage Items */
+     
     .preview-box {
       background: #F4F9F6;
       border: 1.5px solid #C2D8CA;
@@ -320,7 +320,7 @@
     .badge-off { background: #ECEAE4; color: #6B7280; }
     .badge-teal { background: #E6F4F1; color: var(--teal); }
 
-    /* Buttons */
+     
     .btn {
       width: 100%;
       padding: 13px 16px;
@@ -347,7 +347,7 @@
     .btn-xs { padding: 4px 9px; font-size: 12px; border-radius: 6px; width: auto; flex-shrink: 0; }
     .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
 
-    /* Record Case Card */
+     
     .case-card {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -382,7 +382,7 @@
       margin-bottom: 6px;
     }
 
-    /* Loading Overlay */
+     
     #loadingMask {
       position: fixed;
       inset: 0;
@@ -413,7 +413,7 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* Toast */
+     
     #toast {
       position: fixed;
       left: 50%;
@@ -442,7 +442,7 @@
 </head>
 <body>
 
-  <!-- Loading -->
+  
   <div id="loadingMask">
     <div class="loading-card">
       <div class="spinner"></div>
@@ -450,10 +450,10 @@
     </div>
   </div>
 
-  <!-- Toast -->
+  
   <div id="toast" class="hidden"></div>
 
-  <!-- Header -->
+  
   <header class="header">
     <div class="header-inner">
       <div class="header-tag">國軍退除役官兵輔導委員會</div>
@@ -463,17 +463,17 @@
   </header>
 
   <main class="container">
-    <!-- 系統錯誤提示 -->
+    
     <div id="fatalBox" class="banner banner-err hidden"></div>
 
-    <!-- 未加入官方帳號好友提示 -->
+    
     <div id="friendWarnBox" class="banner banner-warn hidden">
       <div style="font-weight:700;margin-bottom:4px;">尚未加入本處官方帳號好友</div>
       <div>請務必先將本處 LINE 官方帳號加入好友（且未封鎖），否則屆時系統將無法發送提醒通知。</div>
       <a id="addFriendLink" href="#" target="_blank" class="btn btn-primary btn-sm hidden" style="margin-top:8px;">立即加入官方帳號好友</a>
     </div>
 
-    <!-- 使用者歡迎條 -->
+    
     <div id="userBar" class="user-bar hidden">
       <img id="userAvatar" class="user-avatar" alt="頭像">
       <div class="user-info">
@@ -482,20 +482,20 @@
       </div>
     </div>
 
-    <!-- 主內容 -->
+    
     <div id="mainContent" class="hidden">
       <div class="tabs">
         <button id="tabBtnForm" type="button" class="tab-btn active" onclick="switchView('form')">新增提醒登記</button>
         <button id="tabBtnList" type="button" class="tab-btn" onclick="switchView('list')">我的提醒紀錄</button>
       </div>
 
-      <!-- ===== View 1: 登記表單 ===== -->
+      
       <section id="viewForm">
         <div id="formCard" class="card">
-          <!-- 網址自動帶入提示條 -->
+          
           <div id="prefillBanner" class="banner banner-ok hidden" style="margin-bottom:14px;"></div>
 
-          <!-- 6 大業務分區切換 -->
+          
           <div style="font-weight:700;font-size:13.5px;color:var(--brown);margin-bottom:8px;">步驟 1：選擇業務類別</div>
           <div class="group-tabs">
             <button type="button" class="group-btn active" data-group="榮民就業" onclick="selectGroup('榮民就業')">1. 榮民就業</button>
@@ -506,13 +506,13 @@
             <button type="button" class="group-btn" data-group="職業訓練" onclick="selectGroup('職業訓練')">6. 職業訓練</button>
           </div>
 
-          <!-- 申請人姓名 -->
+          
           <div class="field">
             <label for="applicantName">申請人姓名<span class="req">*</span></label>
             <input id="applicantName" class="input" type="text" maxlength="30" placeholder="請輸入您的姓名（供提醒訊息稱呼使用）">
           </div>
 
-          <!-- 申請種類 -->
+          
           <div class="field">
             <label for="applyType">申請種類<span class="req">*</span></label>
             <select id="applyType" class="select" onchange="onApplyTypeChange()">
@@ -522,7 +522,7 @@
             <div class="hint">系統將依所選業務，自動展開所有對應階段的提醒排程。</div>
           </div>
 
-          <!-- 官方期程快速帶入（預設摺疊） -->
+          
           <details id="officialSchedulePanel" class="helper-details hidden">
             <summary>
               <span id="officialScheduleSummaryTitle">官方期程快速帶入（選填）</span>
@@ -538,7 +538,7 @@
             <div class="hint">僅退輔會自辦／委辦班隊及考試院期日表支援自動帶入，選擇後會自動填入下方日期與單位／學校／考試名稱；其餘課程請直接手動輸入。</div>
           </details>
 
-          <!-- 正式學籍學期快選區 -->
+          
           <div id="semesterHelperPanel" class="helper-panel hidden">
             <div class="helper-title">預計入學學期快選（自動帶入補助申請期間）</div>
             <select id="semesterSelect" class="select" onchange="onSemesterSelect()">
@@ -547,20 +547,20 @@
             <div class="hint">國內正式學籍補助受理期間：第 1 學期為 9/1～10/15；第 2 學期為 2/1～3/15。</div>
           </div>
 
-          <!-- 動態多基準日期區 -->
+          
           <div id="dynamicDateFields" class="date-grid hidden"></div>
           <div id="dateHelpHint" class="hint hidden" style="margin-top:-8px;margin-bottom:15px;">
             若已過報名階段或尚未到職，選填的日期欄位可先留空，系統會自動排入已填寫日期對應的提醒階段。
           </div>
 
-          <!-- 動態備註欄位 -->
+          
           <div class="field">
             <label for="caseNote" id="caseNoteLabel">入職單位（選填）</label>
             <input id="caseNote" class="input" type="text" maxlength="80" placeholder="請輸入相關單位、班別或考試名稱">
             <div id="noteExampleHint" class="hint">會顯示在提醒卡片中，方便您辨識不同案件。</div>
           </div>
 
-          <!-- 即時預覽提醒排程 -->
+          
           <div id="previewBox" class="preview-box hidden">
             <div class="preview-title">系統預計提醒時程預覽</div>
             <div id="previewList"></div>
@@ -569,7 +569,7 @@
           <button id="submitBtn" type="button" class="btn btn-primary" onclick="submitReminder()">同意接收提醒並送出登記</button>
         </div>
 
-        <!-- 登記成功畫面 -->
+        
         <div id="successCard" class="card hidden">
           <div class="banner banner-ok" style="margin-bottom:14px;">
             <div style="font-weight:800;font-size:16px;margin-bottom:4px;">提醒登記已完成</div>
@@ -587,7 +587,7 @@
         </div>
       </section>
 
-      <!-- ===== View 2: 我的提醒紀錄 ===== -->
+      
       <section id="viewList" class="hidden">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
           <span class="hint" style="margin:0;">可取消個別階段、整案提醒，或設定會外職訓延期</span>
@@ -603,14 +603,14 @@
   </main>
 
 <script>
-  // 自動讀取根目錄 config.js 設定，免重複填寫
+  
   const CONFIG = Object.assign({
     LIFF_ID: '',
     GAS_API_URL: '',
     OA_ADD_FRIEND_URL: ''
   }, window.APP_CONFIG || {});
 
-  // 6 大業務分區設定、動態欄位名稱與網址自動帶入參數（v6.1）
+  
   const SESSION_PARAM_KEY = 'PENDING_REMINDER_PARAMS_V61';
 
   const VALID_GROUPS = ['榮民就業', '二類就業', '訓後就業', '就學進修', '就業考試', '職業訓練'];
@@ -802,9 +802,9 @@
     }
   }
 
-  // =========================================================
-  // 初始化流程
-  // =========================================================
+  
+  
+  
   window.addEventListener('DOMContentLoaded', initApp);
 
   async function initApp() {
@@ -871,9 +871,9 @@
     }
   }
 
-  // =========================================================
-  // 與 GAS doPost 通訊
-  // =========================================================
+  
+  
+  
   async function callGasApi(payload) {
     const body = Object.assign({
       liffApi: true,
@@ -892,9 +892,9 @@
     return await res.json();
   }
 
-  // =========================================================
-  // 6 大業務分區切換、動態備註名稱與多日期表單
-  // =========================================================
+  
+  
+  
   function updateNoteFieldLabel(groupName) {
     const labelText = GROUP_NOTE_LABELS[groupName] || '案件備註（選填）';
     document.getElementById('caseNoteLabel').textContent = labelText;
@@ -1007,9 +1007,9 @@
     }
   }
 
-  // =========================================================
-  // 官方期程清單帶入 & 正式學籍學期快選
-  // =========================================================
+  
+  
+  
   function getOfficialSchedulesForType(applyType) {
     return (app.officialSchedules || []).filter(function (s) {
       return s.applyType === applyType;
@@ -1139,9 +1139,9 @@
     triggerSchedulePreview();
   }
 
-  // =========================================================
-  // 即時試算多階段提醒時程預覽
-  // =========================================================
+  
+  
+  
   async function triggerSchedulePreview() {
     const typeVal = document.getElementById('applyType').value;
     const dates = collectInputDates();
@@ -1194,9 +1194,9 @@
     }
   }
 
-  // =========================================================
-  // 送出登記
-  // =========================================================
+  
+  
+  
   async function submitReminder() {
     const applicantName = (document.getElementById('applicantName').value || '').trim();
     const applyType = document.getElementById('applyType').value;
@@ -1278,9 +1278,9 @@
     }
   }
 
-  // =========================================================
-  // 頁籤切換與「我的提醒紀錄」
-  // =========================================================
+  
+  
+  
   function switchView(view) {
     const isForm = view === 'form';
     document.getElementById('tabBtnForm').classList.toggle('active', isForm);
@@ -1466,9 +1466,9 @@
     } catch (err) { setLoading(false); showToast('延期異常：' + (err.message || err)); }
   }
 
-  // =========================================================
-  // UI 輔助函式
-  // =========================================================
+  
+  
+  
   function setLoading(show, text) {
     if (text) document.getElementById('loadingText').textContent = text;
     document.getElementById('loadingMask').classList.toggle('hidden', !show);
