@@ -458,7 +458,7 @@
     <div class="header-inner">
       <div class="header-tag">國軍退除役官兵輔導委員會</div>
       <h1>雲林縣榮民服務處｜期程提醒登記</h1>
-      <p>登記後系統將於各階段自動推播 LINE 提醒，遇假日自動提前至前一個上班日通知</p>
+      <p>登記並經本處確認後，系統將於各階段自動推播 LINE 提醒，遇假日自動提前至前一個上班日通知</p>
     </div>
   </header>
 
@@ -478,7 +478,7 @@
       <img id="userAvatar" class="user-avatar" alt="頭像">
       <div class="user-info">
         <div id="userDisplayName" class="user-name">讀取中...</div>
-        <div class="user-sub">已綁定此 LINE 帳號接收通知｜本頁不蒐集身分證號或電話</div>
+        <div class="user-sub">已綁定此 LINE 帳號接收通知</div>
       </div>
     </div>
 
@@ -535,7 +535,7 @@
             <div id="officialDocLinkWrap" class="hint hidden">
               <a id="officialDocLink" href="#" target="_blank" style="color:var(--teal);font-weight:700;">查看官方簡章／公告連結</a>
             </div>
-            <div class="hint">僅退輔會自辦／委辦班隊及考試院期日表支援自動帶入，選擇後會自動填入下方日期與單位／學校／考試名稱；其餘課程請直接手動輸入。</div>
+            <div class="hint">僅退輔會自辦／委辦班隊及考試院期日表支援自動帶入，選擇後會自動填入下方日期與名稱；其餘課程請直接手動輸入。</div>
           </details>
 
           
@@ -572,13 +572,13 @@
         
         <div id="successCard" class="card hidden">
           <div class="banner banner-ok" style="margin-bottom:14px;">
-            <div style="font-weight:800;font-size:16px;margin-bottom:4px;">提醒登記已完成</div>
+            <div style="font-weight:800;font-size:16px;margin-bottom:4px;">提醒登記已送出（待承辦人確認）</div>
             <div id="successMeta" style="font-size:13.5px;"></div>
           </div>
-          <div class="preview-title">已排入的推播時程：</div>
+          <div class="preview-title">預計排入的提醒時程（經承辦人核對同意後正式啟用）：</div>
           <div id="successStages" style="margin-bottom:14px;"></div>
           <div class="hint" style="margin-bottom:12px;">
-            提醒：各項補助資格與文件規範請以退輔會最新公告為準。日後若已辦妥、無意願繼續辦理，或會外職訓需調整延期，皆可至「我的提醒紀錄」隨時取消單階段／全案提醒或修改日期。
+            提醒：本案將由本處承辦人員核對並點選同意後，正式列入自動推播排程。日後若已辦妥或需取消，皆可至「我的提醒紀錄」隨時調整。
           </div>
           <div class="btn-row">
             <button type="button" class="btn" onclick="resetForm()">再登記一筆</button>
@@ -590,7 +590,7 @@
       
       <section id="viewList" class="hidden">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-          <span class="hint" style="margin:0;">可取消個別階段、整案提醒，或設定會外職訓延期</span>
+          <span class="hint" style="margin:0;">可查看審核進度、取消個別階段或整案提醒</span>
           <button type="button" class="btn btn-sm" style="width:auto;" onclick="loadMyRecords()">重新整理</button>
         </div>
         <div id="recordsContainer"></div>
@@ -603,16 +603,13 @@
   </main>
 
 <script>
-  
   const CONFIG = Object.assign({
     LIFF_ID: '',
     GAS_API_URL: '',
     OA_ADD_FRIEND_URL: ''
   }, window.APP_CONFIG || {});
 
-  
-  const SESSION_PARAM_KEY = 'PENDING_REMINDER_PARAMS_V61';
-
+  const SESSION_PARAM_KEY = 'PENDING_REMINDER_PARAMS_V63';
   const VALID_GROUPS = ['榮民就業', '二類就業', '訓後就業', '就學進修', '就業考試', '職業訓練'];
 
   const GROUP_NOTE_LABELS = {
@@ -625,29 +622,25 @@
   };
 
   const TYPE_ALIASES = {
-    training:    '會外職訓補助（未申請）',
-    vtc:         '職訓中心自辦/委外課程',
-    education:   '就讀正式學籍（未就讀）',
-    credit:      '進修大專校院（學分班）',
-    exam:        '就業考試補助',
-    employment:  '榮民就業－已到職',
-    employment2: '二類就業－已到職',
-    posttrain:   '訓後就業'
+    training:       '會外職訓補助（未申請）',
+    training_ok:    '會外職訓補助（已審核通過）',
+    vtc:            '職訓中心自辦/委外課程',
+    education:      '就讀正式學籍（未就讀）',
+    education_in:   '就讀正式學籍（已就讀）',
+    credit:         '進修大專校院（學分班）',
+    exam:           '就業考試補助',
+    employment:     '榮民就業－已到職',
+    employment_pre: '榮民就業－未到職',
+    employment2:    '二類就業－已到職',
+    employment2_pre:'二類就業－未到職',
+    posttrain:      '訓後就業'
   };
 
   const GROUP_ALIASES = {
-    '1': '榮民就業',
-    '2': '二類就業',
-    '3': '訓後就業',
-    '4': '就學進修',
-    '5': '就業考試',
-    '6': '職業訓練',
-    veteran:   '榮民就業',
-    class2:    '二類就業',
-    posttrain: '訓後就業',
-    study:     '就學進修',
-    exam:      '就業考試',
-    training:  '職業訓練'
+    '1': '榮民就業', '2': '二類就業', '3': '訓後就業',
+    '4': '就學進修', '5': '就業考試', '6': '職業訓練',
+    veteran: '榮民就業', class2: '二類就業', posttrain: '訓後就業',
+    study: '就學進修', exam: '就業考試', training: '職業訓練'
   };
 
   const app = {
@@ -663,24 +656,36 @@
     previewReqSeq: 0
   };
 
+  function normalizeMatchText(str) {
+    return String(str || '')
+      .toLowerCase()
+      .replace(/[（(\[【]/g, '(')
+      .replace(/[）)\]】]/g, ')')
+      .replace(/[－—–\-]/g, '-')
+      .replace(/\s+/g, '');
+  }
+
   function extractParamsFromSearch(searchStr) {
     const sp = new URLSearchParams(searchStr || '');
     return {
-      type:      (sp.get('type') || '').trim(),
-      group:     (sp.get('group') || '').trim(),
-      name:      (sp.get('name') || '').trim(),
-      note:      (sp.get('note') || sp.get('course') || sp.get('className') || '').trim(),
-      regStart:  (sp.get('regStart') || '').trim(),
-      regEnd:    (sp.get('regEnd') || '').trim(),
-      startDate: (sp.get('startDate') || '').trim(),
-      endDate:   (sp.get('endDate') || '').trim(),
-      ft:        (sp.get('ft') || '').trim()
+      type:         (sp.get('type') || '').trim(),
+      group:        (sp.get('group') || '').trim(),
+      name:         (sp.get('name') || '').trim(),
+      note:         (sp.get('note') || sp.get('course') || sp.get('className') || '').trim(),
+      regStart:     (sp.get('regStart') || '').trim(),
+      regEnd:       (sp.get('regEnd') || '').trim(),
+      startDate:    (sp.get('startDate') || '').trim(),
+      endDate:      (sp.get('endDate') || '').trim(),
+      subsidyStart: (sp.get('subsidyStart') || '').trim(),
+      subsidyEnd:   (sp.get('subsidyEnd') || '').trim(),
+      ft:           (sp.get('ft') || '').trim()
     };
   }
 
   function hasAnyParam(obj) {
     if (!obj) return false;
-    return !!(obj.type || obj.group || obj.name || obj.note || obj.regStart || obj.regEnd || obj.startDate || obj.endDate);
+    return !!(obj.type || obj.group || obj.name || obj.note ||
+      obj.regStart || obj.regEnd || obj.startDate || obj.endDate || obj.subsidyStart || obj.subsidyEnd);
   }
 
   function readInitialParams() {
@@ -691,7 +696,9 @@
       let stateStr = topSp.get('liff.state') || '';
       if (stateStr) {
         try {
-          if (/^%(2F|3F)/i.test(stateStr)) stateStr = decodeURIComponent(stateStr);
+          if (/^%(2F|3F)/i.test(stateStr) || (stateStr.indexOf('=') === -1 && stateStr.indexOf('%3D') !== -1)) {
+            stateStr = decodeURIComponent(stateStr);
+          }
           const qIdx = stateStr.indexOf('?');
           p = extractParamsFromSearch(qIdx !== -1 ? stateStr.slice(qIdx) : stateStr);
         } catch (e) {}
@@ -714,35 +721,108 @@
     }
   }
 
+  function resolvePreferredGroup(p) {
+    if (p.group) {
+      const target = GROUP_ALIASES[p.group.toLowerCase()] || p.group;
+      const found = VALID_GROUPS.find(function (g) { return g === target || g.indexOf(target) !== -1; });
+      if (found) return found;
+    }
+    const rawType = String(p.type || '').trim().toLowerCase();
+    if (rawType === 'training' || rawType === 'training_ok' || rawType === 'vtc' || /職訓/.test(p.type || '')) return '職業訓練';
+    if (rawType === 'exam' || /考試/.test(p.type || '')) return '就業考試';
+    if (rawType === 'education' || rawType === 'education_in' || rawType === 'credit' || /學籍|學分|就學|進修/.test(p.type || '')) return '就學進修';
+    if (rawType === 'posttrain' || /訓後/.test(p.type || '')) return '訓後就業';
+    if (rawType === 'employment2' || rawType === 'employment2_pre' || /二類/.test(p.type || '')) return '二類就業';
+    if (rawType === 'employment' || rawType === 'employment_pre' || /榮民/.test(p.type || '')) return '榮民就業';
+    return '';
+  }
+
+  function findMatchedType(rawType, preferredGroup) {
+    if (!rawType || !app.types.length) return null;
+    const rawKey = String(rawType).trim().toLowerCase();
+    const aliasTarget = TYPE_ALIASES[rawKey] || rawType;
+    const normTarget = normalizeMatchText(aliasTarget);
+    const normRaw = normalizeMatchText(rawType);
+
+    
+    let matched = app.types.find(function (t) {
+      const n = normalizeMatchText(t.applyType);
+      return n === normTarget || n === normRaw;
+    });
+    if (matched) return matched;
+
+    
+    matched = app.types.find(function (t) {
+      const n = normalizeMatchText(t.applyType);
+      return n.indexOf(normTarget) !== -1 || normTarget.indexOf(n) !== -1;
+    });
+    if (matched) return matched;
+
+    
+    const scoped = preferredGroup
+      ? app.types.filter(function (t) { return t.liffGroup === preferredGroup; })
+      : app.types;
+    const list = scoped.length ? scoped : app.types;
+
+    if (rawKey === 'training' || /未申請|未審核|未備案/.test(rawType)) {
+      return list.find(function (t) { return /會外/.test(t.applyType) && /未申請|未審核|未備案|申請前/.test(t.applyType); }) ||
+        list.find(function (t) { return /未申請|未審核|未備案|申請前/.test(t.applyType); }) || null;
+    }
+
+    if (rawKey === 'training_ok' || /已審核|已核准|已通過|已備案/.test(rawType)) {
+      return list.find(function (t) { return /會外/.test(t.applyType) && /已審核|已核准|已通過|已備案/.test(t.applyType); }) ||
+        list.find(function (t) { return /已審核|已核准|已通過|已備案/.test(t.applyType); }) || null;
+    }
+
+    if (rawKey === 'vtc') {
+      return list.find(function (t) { return /職訓中心|自辦|委外|委辦/.test(t.applyType); }) || null;
+    }
+
+    if (rawKey === 'education' || rawKey === 'education_in') {
+      const wantIn = rawKey === 'education_in';
+      return list.find(function (t) {
+        return /正式學籍/.test(t.applyType) && (wantIn ? /已就讀|在學/.test(t.applyType) : /未就讀/.test(t.applyType));
+      }) || list.find(function (t) { return /正式學籍/.test(t.applyType); }) || null;
+    }
+
+    if (rawKey === 'credit') {
+      return list.find(function (t) { return /學分班|進修大專/.test(t.applyType); }) || null;
+    }
+
+    if (rawKey === 'exam') {
+      return list.find(function (t) { return /考試/.test(t.applyType); }) || null;
+    }
+
+    return null;
+  }
+
   function applyPreselectedParams() {
     const p = readInitialParams();
     try { sessionStorage.removeItem(SESSION_PARAM_KEY); } catch (e) {}
     if (!app.types.length) return;
 
+    const preferredGroup = resolvePreferredGroup(p);
     let selectedTypeName = '';
 
+    
     if (p.type) {
-      const aliasTarget = TYPE_ALIASES[p.type.toLowerCase()] || p.type;
-      const matched = app.types.find(function (t) { return t.applyType === aliasTarget; }) ||
-        app.types.find(function (t) { return t.applyType.indexOf(aliasTarget) !== -1; });
-
+      const matched = findMatchedType(p.type, preferredGroup);
       if (matched) {
-        selectGroup(matched.liffGroup, true);
+        selectGroup(matched.liffGroup || preferredGroup || app.activeGroup, true);
         const sel = document.getElementById('applyType');
         sel.value = matched.applyType;
         onApplyTypeChange();
         selectedTypeName = matched.applyType;
       } else {
-        selectGroup(app.activeGroup, false);
+        selectGroup(preferredGroup || app.activeGroup, false);
       }
-    } else if (p.group) {
-      const targetGroup = GROUP_ALIASES[p.group.toLowerCase()] || p.group;
-      const foundGrp = VALID_GROUPS.find(function (g) { return g === targetGroup || g.indexOf(targetGroup) !== -1; });
-      selectGroup(foundGrp || app.activeGroup, false);
+    } else if (preferredGroup) {
+      selectGroup(preferredGroup, false);
     } else {
       selectGroup(app.activeGroup, false);
     }
 
+    
     const prefilledSummary = [];
     if (p.name) {
       document.getElementById('applicantName').value = p.name.slice(0, 30);
@@ -751,19 +831,58 @@
     if (p.note) {
       document.getElementById('caseNote').value = p.note.slice(0, 80);
       app.autoFilledNote = '';
-      prefilledSummary.push('班別／備註：' + p.note.slice(0, 80));
+      prefilledSummary.push('課程／單位：' + p.note.slice(0, 80));
     }
     if (p.ft === '1' || p.ft === 'true' || p.ft === '是') {
       app.selectedIsFullTime = true;
     }
 
+    
     let dateFilled = false;
-    ['regStart', 'regEnd', 'startDate', 'endDate'].forEach(function (k) {
+    const rawTypeLower = String(p.type || '').trim().toLowerCase();
+    const isApprovedType = rawTypeLower === 'training_ok' || /已審核|已核准|已通過|已備案/.test(selectedTypeName);
+    const isPreApplyType = rawTypeLower === 'training' || /未申請|未審核|未備案|申請前/.test(selectedTypeName);
+
+    ['regStart', 'regEnd', 'startDate', 'endDate', 'subsidyStart', 'subsidyEnd'].forEach(function (k) {
       if (/^\d{4}-\d{2}-\d{2}$/.test(p[k] || '')) {
         if (setDateInputIfExists(k, p[k])) dateFilled = true;
       }
     });
 
+    const dynInputs = Array.from(document.querySelectorAll('.dyn-date-input'));
+    if (!dateFilled && dynInputs.length > 0 && (p.startDate || p.endDate)) {
+      dynInputs.forEach(function (inp) {
+        if (inp.value) return;
+        const lblEl = document.querySelector('label[for="' + inp.id + '"]');
+        const lblText = lblEl ? lblEl.textContent : '';
+        if (/結訓|完訓|結束/.test(lblText)) {
+          const valEnd = p.endDate || p.startDate;
+          if (/^\d{4}-\d{2}-\d{2}$/.test(valEnd || '')) {
+            inp.value = valEnd;
+            dateFilled = true;
+          }
+        } else if (/開訓|開始|起日/.test(lblText)) {
+          const valStart = p.startDate || p.endDate;
+          if (/^\d{4}-\d{2}-\d{2}$/.test(valStart || '')) {
+            inp.value = valStart;
+            dateFilled = true;
+          }
+        }
+      });
+
+      
+      if (!dateFilled && dynInputs.length === 1) {
+        const fallbackDate = isApprovedType
+          ? (p.endDate || p.startDate)
+          : (isPreApplyType ? (p.startDate || p.endDate) : (p.startDate || p.endDate));
+        if (/^\d{4}-\d{2}-\d{2}$/.test(fallbackDate || '')) {
+          dynInputs[0].value = fallbackDate;
+          dateFilled = true;
+        }
+      }
+    }
+
+    
     const curType = document.getElementById('applyType').value;
     if (!dateFilled && p.note && curType) {
       const candidates = getOfficialSchedulesForType(curType).filter(function (s) {
@@ -788,12 +907,21 @@
       pill.classList.remove('hidden');
     }
 
-    if (prefilledSummary.length > 0) {
+    if (prefilledSummary.length > 0 || dateFilled) {
+      const filledDatesText = [];
+      document.querySelectorAll('.dyn-date-input').forEach(function (inp) {
+        if (!inp.value) return;
+        const lblEl = document.querySelector('label[for="' + inp.id + '"]');
+        const lblClean = lblEl ? lblEl.textContent.replace(/[*（(].*$/g, '').trim() : '日期';
+        filledDatesText.push(lblClean + '：' + inp.value);
+      });
+      if (filledDatesText.length) prefilledSummary.push(filledDatesText.join('、'));
+
       const banner = document.getElementById('prefillBanner');
       banner.innerHTML =
-        '<div style="font-weight:800;margin-bottom:2px;">已自動帶入您的登記資料</div>' +
-        '<div>' + escapeHtml(prefilledSummary.join(' ｜ ')) + '</div>' +
-        '<div style="font-size:12.5px;margin-top:3px;">請核對下方日期無誤後，點擊最下方「同意接收提醒並送出登記」即可完成設定。</div>';
+        '<div style="font-weight:800;margin-bottom:2px;">已由承辦人員為您預填資料</div>' +
+        (prefilledSummary.length ? ('<div>' + escapeHtml(prefilledSummary.join(' ｜ ')) + '</div>') : '') +
+        '<div style="font-size:12.5px;margin-top:3px;">請補填姓名並核對下方日期無誤後，點擊最下方「同意接收提醒並送出登記」即可。</div>';
       banner.classList.remove('hidden');
     }
 
@@ -802,9 +930,6 @@
     }
   }
 
-  
-  
-  
   window.addEventListener('DOMContentLoaded', initApp);
 
   async function initApp() {
@@ -823,7 +948,7 @@
       cacheInitialParams();
 
       if (!liff.isLoggedIn()) {
-        liff.login();
+        liff.login({ redirectUri: window.location.href });
         return;
       }
 
@@ -852,7 +977,7 @@
         }
       } catch (e) {}
 
-      setLoading(true, '正在載入 6 大業務項目與官方期程...');
+      setLoading(true, '正在載入業務項目與官方期程...');
       const typeRes = await callGasApi({ action: 'getTypes' });
       if (!typeRes.ok) {
         showFatal('載入申請種類失敗：' + (typeRes.message || '請稍後再試'));
@@ -871,9 +996,6 @@
     }
   }
 
-  
-  
-  
   async function callGasApi(payload) {
     const body = Object.assign({
       liffApi: true,
@@ -892,12 +1014,8 @@
     return await res.json();
   }
 
-  
-  
-  
   function updateNoteFieldLabel(groupName) {
-    const labelText = GROUP_NOTE_LABELS[groupName] || '案件備註（選填）';
-    document.getElementById('caseNoteLabel').textContent = labelText;
+    document.getElementById('caseNoteLabel').textContent = GROUP_NOTE_LABELS[groupName] || '案件備註（選填）';
   }
 
   function selectGroup(groupName, skipAutoSelect) {
@@ -1007,9 +1125,6 @@
     }
   }
 
-  
-  
-  
   function getOfficialSchedulesForType(applyType) {
     return (app.officialSchedules || []).filter(function (s) {
       return s.applyType === applyType;
@@ -1139,9 +1254,6 @@
     triggerSchedulePreview();
   }
 
-  
-  
-  
   async function triggerSchedulePreview() {
     const typeVal = document.getElementById('applyType').value;
     const dates = collectInputDates();
@@ -1194,9 +1306,6 @@
     }
   }
 
-  
-  
-  
   async function submitReminder() {
     const applicantName = (document.getElementById('applicantName').value || '').trim();
     const applyType = document.getElementById('applyType').value;
@@ -1209,7 +1318,7 @@
 
     const btn = document.getElementById('submitBtn');
     btn.disabled = true;
-    setLoading(true, '正在寫入排程並計算各階段提醒日...');
+    setLoading(true, '正在送出登記並計算各階段提醒日...');
 
     try {
       const res = await callGasApi({
@@ -1239,17 +1348,18 @@
       const stages = res.stages || [];
       document.getElementById('successStages').innerHTML = stages.length
         ? stages.map(function (st) {
-            const isSkipped = st.status !== '待發送';
+            const isSkipped = st.status === '已略過(過期)';
+            const bCls = isSkipped ? 'badge-off' : (st.status === '待審核' ? 'badge-warn' : 'badge-ok');
             return '<div class="stage-item' + (isSkipped ? ' past' : '') + '">' +
               '<div class="stage-name">' + escapeHtml(st.stageName) + '</div>' +
               '<div class="stage-meta">' +
-                '<span class="badge ' + (isSkipped ? 'badge-off' : 'badge-ok') + '">' + escapeHtml(st.status) + '</span>' +
+                '<span class="badge ' + bCls + '">' + escapeHtml(st.status) + '</span>' +
                 escapeHtml(st.remindDate) + ' ' + escapeHtml(st.sendHour) + ':00' +
                 (st.wasShifted ? ' <span class="badge badge-warn">遇假日提前</span>' : '') +
               '</div>' +
             '</div>';
           }).join('')
-        : '<div class="hint">已成功建檔並排入系統提醒。</div>';
+        : '<div class="hint">已成功送出，待承辦人員確認後正式啟用。</div>';
 
       document.getElementById('formCard').classList.add('hidden');
       document.getElementById('successCard').classList.remove('hidden');
@@ -1278,9 +1388,6 @@
     }
   }
 
-  
-  
-  
   function switchView(view) {
     const isForm = view === 'form';
     document.getElementById('tabBtnForm').classList.toggle('active', isForm);
@@ -1328,7 +1435,7 @@
       wrap.innerHTML = '';
       caseOrder.forEach(function (cid) {
         const grp = caseMap[cid];
-        const hasPending = grp.items.some(function (it) { return it.status === '待發送'; });
+        const hasPending = grp.items.some(function (it) { return it.status === '待發送' || it.status === '待審核'; });
         const isExtTraining = String(grp.applyType || '').indexOf('會外職訓') !== -1;
 
         const card = document.createElement('div');
@@ -1358,7 +1465,7 @@
           nameDiv.textContent = it.stageName;
           topRow.appendChild(nameDiv);
 
-          if (it.status === '待發送') {
+          if (it.status === '待發送' || it.status === '待審核') {
             const stCancelBtn = document.createElement('button');
             stCancelBtn.type = 'button';
             stCancelBtn.className = 'btn btn-danger btn-xs';
@@ -1367,11 +1474,16 @@
             topRow.appendChild(stCancelBtn);
           }
 
-          const cls = it.status === '已發送' ? 'badge-ok' : 'badge-warn';
+          let cls = 'badge-warn';
+          let stText = it.status;
+          if (it.status === '已發送') cls = 'badge-ok';
+          else if (it.status === '待審核') { cls = 'badge-warn'; stText = '待承辦人審核'; }
+          else if (it.status === '待發送') cls = 'badge-teal';
+
           const metaDiv = document.createElement('div');
           metaDiv.className = 'stage-meta';
           metaDiv.innerHTML =
-            '<span class="badge ' + cls + '">' + escapeHtml(it.status) + '</span>' +
+            '<span class="badge ' + cls + '">' + escapeHtml(stText) + '</span>' +
             escapeHtml(it.remindDate) + ' ' + escapeHtml(it.sendHour) + ':00' +
             (it.deadlineDate && it.deadlineDate !== it.baseDate ? ('｜截止：' + escapeHtml(it.deadlineDate)) : '');
 
@@ -1466,9 +1578,6 @@
     } catch (err) { setLoading(false); showToast('延期異常：' + (err.message || err)); }
   }
 
-  
-  
-  
   function setLoading(show, text) {
     if (text) document.getElementById('loadingText').textContent = text;
     document.getElementById('loadingMask').classList.toggle('hidden', !show);
