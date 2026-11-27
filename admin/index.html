@@ -207,6 +207,8 @@
     .btn:hover { background: #F5F6F8; border-color: #C8CCD2; }
     .btn-primary { background: var(--primary); color: #FFF; border-color: var(--primary); }
     .btn-primary:hover { background: var(--primary-dark); border-color: var(--primary-dark); }
+    .btn-ok { background: #1F7A3E; color: #FFF; border-color: #1F7A3E; }
+    .btn-ok:hover { background: #186231; border-color: #186231; }
     .btn-dark { background: var(--charcoal); color: #FFF; border-color: var(--charcoal); }
     .btn-dark:hover { background: #1E2022; }
     .btn-cyan { background: var(--cyan-light); color: var(--cyan-dark); border-color: #B4ECF0; }
@@ -308,7 +310,56 @@
     .faq-card.is-rem { border-left: 3.5px solid var(--charcoal); }
     .faq-card.is-manual { border-left: 3.5px solid var(--cyan); }
     .faq-card.is-manual-due { background: #FFFCFC; border-left: 3.5px solid var(--primary); }
-    .faq-card.is-off { opacity: 0.62; }
+    .faq-card.is-pending-review { background: #FFFDF7; border: 1px solid #F6CF88; border-left: 4px solid #F59E0B; }
+    .faq-card.is-off { opacity: 0.65; }
+
+     
+    .approve-bar {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: #FFF7E6;
+      border: 1px solid #F4D08A;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .stage-sub-box {
+      margin-top: 9px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: var(--surface-soft);
+      border: 1px solid var(--border);
+    }
+    .stage-sub-box.is-primary-stage {
+      background: #FBFDFE;
+      border-color: #CFE9EC;
+      border-left: 3px solid var(--cyan);
+    }
+    .stage-sub-box.is-done {
+      opacity: 0.68;
+    }
+    .stage-collapse {
+      margin-top: 9px;
+      border: 1px dashed #D8DCE2;
+      border-radius: 10px;
+      padding: 8px 11px;
+      background: #FAFAFB;
+    }
+    .stage-collapse summary {
+      cursor: pointer;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--muted);
+      list-style: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .stage-collapse summary::-webkit-details-marker { display: none; }
+    .stage-collapse[open] summary { margin-bottom: 6px; color: var(--charcoal); }
 
     .faq-head {
       display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; flex-wrap: wrap;
@@ -596,7 +647,7 @@
           <div class="toolbar" style="margin-bottom:0;">
             <div style="flex:1;min-width:240px;">
               <strong style="font-size:15px;color:var(--charcoal);">傳送自動提醒登記連結給民眾</strong>
-              <span class="hint" style="margin-left:8px;">民眾點開填寫後，系統於期限前自動發送 LINE 提醒。</span>
+              <span class="hint" style="margin-left:8px;">民眾點開登記並經本處確認同意後，系統於期限前自動發送 LINE 提醒。</span>
             </div>
             <div class="toolbar-group" style="flex:1;max-width:460px;">
               <input id="remLiffUrlDisplay" class="input" style="font-size:13px;padding:7px 12px;" readonly placeholder="尚未設定登記連結（請洽管理員）">
@@ -741,6 +792,37 @@
           
           <div class="panel panel-accent-top" style="margin-bottom:0;">
             <div class="toolbar">
+              <div class="toolbar-group">
+                <h3 class="panel-title" style="margin:0;">已綁定自動提醒名單</h3>
+                <span id="remPendingApproveBadge" class="badge badge-warn hidden">待審核 0 案</span>
+              </div>
+              <button class="btn btn-sm" onclick="loadReminderData(true)">重整</button>
+            </div>
+
+            <div class="toolbar-group" style="margin-bottom:12px;">
+              <select id="remRecScopeFilter" class="select" style="width:auto;" onchange="renderReminderRecords()">
+                <option value="MY_SCOPE">僅看我的業務</option>
+                <option value="ALL">全部業務名單</option>
+              </select>
+              <select id="remRecStatusFilter" class="select" style="width:auto;" onchange="renderReminderRecords()">
+                <option value="ALL">全部狀態</option>
+                <option value="待審核">待審核（尚未排程）</option>
+                <option value="待發送">待發送</option>
+                <option value="已完成">已完成</option>
+                <option value="已發送">已發送</option>
+                <option value="已結案取消">已取消</option>
+                <option value="發送失敗">發送失敗</option>
+              </select>
+              <input id="remRecSearch" class="input" style="flex:1;min-width:140px;" placeholder="搜尋姓名、暱稱或單位..." oninput="renderReminderRecords()">
+            </div>
+            <div id="remRecCountLabel" class="hint" style="margin:-4px 0 10px;"></div>
+
+            <div id="remRecordList" class="faq-list"></div>
+          </div>
+
+          
+          <div class="panel panel-cyan-top" style="margin-bottom:0;">
+            <div class="toolbar">
               <div>
                 <h3 class="panel-title">提醒文案排程管理</h3>
                 <div class="hint" style="margin:0;">同時套用於「自動推播」與「手動提醒排程」；點複製新增可加階段。</div>
@@ -766,35 +848,6 @@
               目前管理員已鎖定一般同仁編輯權限，僅供檢視。
             </div>
             <div id="remTemplateList" class="faq-list"></div>
-          </div>
-
-          
-          <div class="panel panel-cyan-top" style="margin-bottom:0;">
-            <div class="toolbar">
-              <div>
-                <h3 class="panel-title">已綁定自動提醒名單</h3>
-                <div class="hint" style="margin:0;">已完成 LINE 登記之民眾排程，系統到期會自動推播。</div>
-              </div>
-              <button class="btn btn-sm" onclick="loadReminderData(true)">重整</button>
-            </div>
-
-            <div class="toolbar-group" style="margin-bottom:12px;">
-              <select id="remRecScopeFilter" class="select" style="width:auto;" onchange="renderReminderRecords()">
-                <option value="MY_SCOPE">僅看我的業務</option>
-                <option value="ALL">全部業務名單</option>
-              </select>
-              <select id="remRecStatusFilter" class="select" style="width:auto;" onchange="renderReminderRecords()">
-                <option value="ALL">全部狀態</option>
-                <option value="待發送">待發送</option>
-                <option value="已發送">已發送</option>
-                <option value="已結案取消">已取消</option>
-                <option value="發送失敗">發送失敗</option>
-              </select>
-              <input id="remRecSearch" class="input" style="flex:1;min-width:140px;" placeholder="搜尋姓名、暱稱或單位..." oninput="renderReminderRecords()">
-            </div>
-            <div id="remRecCountLabel" class="hint" style="margin:-4px 0 10px;"></div>
-
-            <div id="remRecordList" class="faq-list"></div>
           </div>
         </div>
       </section>
@@ -844,7 +897,7 @@
             <div class="switch-row" style="margin:12px 0;">
               <div>
                 <div style="font-weight:600;">開放一般同仁編輯問答、提醒文案與上傳媒體</div>
-                <div class="hint" style="margin:0;">關閉後一般同仁僅能複製問答、管理手動提醒排程與使用 AI 幫寫草稿。</div>
+                <div class="hint" style="margin:0;">關閉後一般同仁僅能複製問答、審核／管理提醒名單與使用 AI 幫寫草稿。</div>
               </div>
               <label style="display:flex;align-items:center;gap:8px;font-weight:600;cursor:pointer;">
                 <input type="checkbox" id="setAllowStaffEdit" onchange="toggleStaffEditUI(this.checked)">
@@ -1107,7 +1160,7 @@
             <div class="toolbar">
               <div>
                 <h3 class="panel-title">自動推播排程、額度與 LIFF 參數</h3>
-                <div class="hint" style="margin:0;">提醒文案與階段規則請至「自動提醒管理」左側的「提醒文案排程管理」維護。</div>
+                <div class="hint" style="margin:0;">提醒文案與階段規則請至「自動提醒管理」右側的「提醒文案排程管理」維護。</div>
               </div>
               <div class="toolbar-group">
                 <button class="btn btn-sm" onclick="loadReminderData(true)">重新整理</button>
@@ -1305,6 +1358,35 @@
       <div class="modal-body" id="helpModalBody"></div>
       <div class="modal-foot">
         <button class="btn btn-primary btn-sm" onclick="closeModal('helpModal')">我知道了</button>
+      </div>
+    </div>
+  </div>
+
+  
+  <div id="remRescheduleModal" class="modal-backdrop hidden">
+    <div class="modal-card" style="max-width:520px;">
+      <div class="modal-head">
+        <h3>修訂基準日並重算排程</h3>
+        <button class="btn btn-ghost btn-xs" onclick="closeModal('remRescheduleModal')">關閉</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="rrCaseId">
+        <div id="rrCaseSummary" class="info-bar" style="margin-bottom:14px;"></div>
+
+        <div style="margin-bottom:12px;">
+          <label class="field-label" for="rrBaseDateKey">選擇要修訂的基準日項目</label>
+          <select id="rrBaseDateKey" class="select" onchange="onRrBaseDateKeyChange()"></select>
+        </div>
+
+        <div style="margin-bottom:8px;">
+          <label class="field-label" for="rrNewDate">新的基準日期</label>
+          <input id="rrNewDate" type="date" class="input">
+        </div>
+        <div class="hint">儲存後，系統會依國定假日表自動重新計算該基準日對應的所有未完成階段提醒日與截止日（不影響已發送或已取消階段）。</div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn" onclick="closeModal('remRescheduleModal')">取消</button>
+        <button type="button" class="btn btn-primary" onclick="saveAdminRescheduleUI()">確認修訂並重算</button>
       </div>
     </div>
   </div>
@@ -1944,7 +2026,7 @@
     daytime: {
       title: '常用回覆｜操作說明',
       items: [
-        '<strong>最上方連結列</strong>：點「複製連結」傳給民眾，對方填寫後就會在期限前自動收到 LINE 提醒。',
+        '<strong>最上方連結列</strong>：點「複製連結」傳給民眾，對方填寫並經後台同意後，就會在期限前自動收到 LINE 提醒。',
         '<strong>左欄「手動提醒排程」</strong>：針對不想綁定自動提醒的申請人，點「新增手動提醒」可直接帶入「手動名單_*」補填缺漏日期，或手動建檔套用排程與文案；時間到按「複製訊息」貼到旁邊的官方 LINE，傳完點「已傳送」，不需要的階段隨時可點「移除」。',
         '<strong>右欄「常用回覆」</strong>：預設只顯示您負責業務的問答，輸入關鍵字篩選後按「複製文字」即可貼回 LINE（可直接微調文字再複製）。'
       ]
@@ -1960,8 +2042,9 @@
     reminder: {
       title: '自動提醒管理｜操作說明',
       items: [
-        '<strong>左欄「提醒文案排程管理」</strong>：管理各業務提醒時間點與文案範本，修改後會同時套用至「自動推播」與「手動提醒排程」；點「複製新增」可快速增加新階段。',
-        '<strong>右欄「已綁定自動提醒名單」</strong>：檢視已完成 LINE 登記的民眾排程，預設篩選您的負責業務，可手動補發或取消單筆提醒。'
+        '<strong>左欄「已綁定自動提醒名單」</strong>：民眾登記後會先標記為「待審核」並置頂，請核對後點「同意列入排程」才正式啟用自動推播。同案預設只顯示最近一筆提醒，其餘自動折疊。',
+        '<strong>完成同類型＆修訂基準日</strong>：點「完成此項」會自動取消同案件<strong>同類型</strong>（如報名／申請前備案／核銷請領）的後續階段，不影響下一大階段；日期異動時可點「修訂基準日」自動依假日表重算。',
+        '<strong>右欄「提醒文案排程管理」</strong>：管理各業務提醒時間點與文案範本，修改後會同時套用至自動推播與手動提醒排程。'
       ]
     },
     manage: {
@@ -2011,6 +2094,7 @@
     mcDraftStages: [],
     mcPreviewTimer: null,
     mcPreviewSeq: 0,
+    rrCaseKeyMap: {},
     reminderPushStats: { yearMonth: '', used: 0, limit: 200, remain: 200, percent: 0 },
     reminderTriggerInstalled: false,
     reminderLiffUrl: '',
@@ -2187,6 +2271,19 @@
     document.getElementById('hiddenAiAudioInput').addEventListener('change', handleAiAudioFilePicked);
     document.getElementById('hiddenIcsInput').addEventListener('change', handleIcsFilePicked);
     document.getElementById('hiddenScheduleDocInput').addEventListener('change', handleScheduleDocFilePicked);
+
+    const pendBadge = document.getElementById('remPendingApproveBadge');
+    if (pendBadge) {
+      pendBadge.style.cursor = 'pointer';
+      pendBadge.title = '點擊篩選待審核案件';
+      pendBadge.onclick = function () {
+        const stSel = document.getElementById('remRecStatusFilter');
+        if (stSel) {
+          stSel.value = stSel.value === '待審核' ? 'ALL' : '待審核';
+          renderReminderRecords();
+        }
+      };
+    }
 
     tryAutoLogin();
   });
@@ -3806,7 +3903,7 @@
   
   
   function loadReminderData(showToastMsg) {
-    setLoading(true, '載入自動提醒文案與名單...');
+    setLoading(true, '載入自動提醒名單與文案...');
     google.script.run
       .withSuccessHandler(function (res) {
         setLoading(false);
@@ -3829,9 +3926,9 @@
 
         document.getElementById('remLiffUrlDisplay').value = state.reminderLiffUrl || '';
         renderManualReminders();
+        renderReminderRecords();
         renderReminderTypeFilter();
         renderReminderTemplates();
-        renderReminderRecords();
         if (state.role === 'admin') {
           renderReminderDashboard();
           renderOfficialSchedulesTable();
@@ -3894,7 +3991,7 @@
   }
 
   function runReminderPushNowUI() {
-    if (!confirm('確定要立即掃描並推播到期名單嗎？（每則消耗 1 則 Push 額度）')) return;
+    if (!confirm('確定要立即掃描並推播到期名單嗎？（僅推播已同意之待發送階段，每則消耗 1 則 Push 額度）')) return;
     setLoading(true, '掃描推播中...');
     google.script.run
       .withSuccessHandler(function (res) {
@@ -3911,6 +4008,422 @@
       .apiRunReminderPushNow(state.token);
   }
 
+  
+  function getBoundStageBadgeClass(status) {
+    if (status === '待審核') return 'badge-warn';
+    if (status === '待發送') return 'badge-cyan';
+    if (status === '已發送' || status === '已完成') return 'badge-on';
+    if (status === '發送失敗') return 'badge-err';
+    return 'badge-off';
+  }
+
+  function renderReminderRecords() {
+    const scopeFilter = document.getElementById('remRecScopeFilter').value || 'MY_SCOPE';
+    const stFilter = document.getElementById('remRecStatusFilter').value || 'ALL';
+    const q = (document.getElementById('remRecSearch').value || '').trim().toLowerCase();
+    const wrap = document.getElementById('remRecordList');
+    const pendBadge = document.getElementById('remPendingApproveBadge');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+
+    
+    const caseMap = {};
+    const allCases = [];
+    (state.reminderRecords || []).forEach(function (r) {
+      const cid = r.caseId || ('ROW_' + r.rowIndex);
+      if (!caseMap[cid]) {
+        caseMap[cid] = {
+          caseId: cid,
+          createdAt: r.createdAt || '',
+          applicantName: r.applicantName || '',
+          displayName: r.displayName || '',
+          applyType: r.applyType || '',
+          caseNote: r.caseNote || '',
+          items: []
+        };
+        allCases.push(caseMap[cid]);
+      }
+      caseMap[cid].items.push(r);
+    });
+
+    
+    const scopedCases = allCases.filter(function (c) {
+      if (scopeFilter === 'MY_SCOPE' && !matchesOwnerApplyType(c.applyType, '')) return false;
+      return true;
+    });
+
+    const pendingApproveCasesCnt = scopedCases.filter(function (c) {
+      return c.items.some(function (it) { return it.status === '待審核'; });
+    }).length;
+
+    if (pendBadge) {
+      if (pendingApproveCasesCnt > 0) {
+        pendBadge.textContent = '待審核 ' + pendingApproveCasesCnt + ' 案';
+        pendBadge.classList.remove('hidden');
+      } else {
+        pendBadge.classList.add('hidden');
+      }
+    }
+
+    
+    const filteredCases = scopedCases.filter(function (c) {
+      if (stFilter !== 'ALL') {
+        if (!c.items.some(function (it) { return it.status === stFilter; })) return false;
+      }
+      if (q) {
+        const stageText = c.items.map(function (it) { return it.stageName + ' ' + it.remindDate + ' ' + (it.phaseLabel || ''); }).join(' ');
+        const hay = (c.caseId + ' ' + c.applicantName + ' ' + c.displayName + ' ' + c.applyType + ' ' + c.caseNote + ' ' + stageText).toLowerCase();
+        if (hay.indexOf(q) === -1) return false;
+      }
+      return true;
+    });
+
+    
+    filteredCases.forEach(function (c) {
+      c.items.sort(function (a, b) {
+        const d = String(a.remindDate || '9999-99-99').localeCompare(String(b.remindDate || '9999-99-99'));
+        if (d !== 0) return d;
+        return String(a.sendHour || '09').localeCompare(String(b.sendHour || '09'));
+      });
+
+      c.hasPendingApprove = c.items.some(function (it) { return it.status === '待審核'; });
+      c.hasActive = c.items.some(function (it) { return it.status === '待發送' || it.status === '發送失敗'; });
+
+      let primary = null;
+      if (stFilter !== 'ALL') {
+        primary = c.items.find(function (it) { return it.status === stFilter; }) || c.items[0];
+      } else {
+        primary = c.items.find(function (it) { return it.status === '待發送' || it.status === '發送失敗'; }) ||
+                  c.items.find(function (it) { return it.status === '待審核'; }) ||
+                  c.items[c.items.length - 1];
+      }
+      c.primaryItem = primary;
+      c.otherItems = c.items.filter(function (it) { return it !== primary; });
+      c.sortDate = (primary && primary.remindDate) || '9999-99-99';
+    });
+
+    
+    filteredCases.sort(function (a, b) {
+      const pa = a.hasPendingApprove ? 0 : (a.hasActive ? 1 : 2);
+      const pb = b.hasPendingApprove ? 0 : (b.hasActive ? 1 : 2);
+      if (pa !== pb) return pa - pb;
+      if (pa === 1) return a.sortDate.localeCompare(b.sortDate);
+      return String(b.createdAt).localeCompare(String(a.createdAt));
+    });
+
+    const totalStageCnt = filteredCases.reduce(function (acc, c) { return acc + c.items.length; }, 0);
+    document.getElementById('remRecCountLabel').textContent = '共 ' + filteredCases.length + ' 案（' + totalStageCnt + ' 個階段；同案預設只顯示最近提醒）';
+
+    if (!filteredCases.length) {
+      wrap.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted);">目前尚無符合條件的自動提醒名單。</div>';
+      return;
+    }
+
+    filteredCases.forEach(function (c) {
+      const card = document.createElement('div');
+      card.className = 'faq-card ' + (c.hasPendingApprove ? 'is-pending-review' : (c.hasActive ? 'is-manual' : 'is-off'));
+
+      const pendingApproveCnt = c.items.filter(function (it) { return it.status === '待審核'; }).length;
+      const canReschedule = c.items.some(function (it) {
+        return it.status === '待審核' || it.status === '待發送' || it.status === '發送失敗' || it.status === '已略過(過期)';
+      });
+
+      let caseStatusBadge = '<span class="badge badge-off">已結案</span>';
+      if (c.hasPendingApprove) caseStatusBadge = '<span class="badge badge-warn">待審核</span>';
+      else if (c.hasActive) caseStatusBadge = '<span class="badge badge-cyan">排程中</span>';
+
+      const head = document.createElement('div');
+      head.className = 'faq-head';
+      head.innerHTML =
+        '<div class="faq-head-left">' +
+          caseStatusBadge +
+          '<span class="badge badge-cat">' + escapeHtml(c.applyType) + '</span>' +
+          '<strong style="font-size:15px;color:var(--charcoal);">' + escapeHtml(c.applicantName || '-') + '</strong>' +
+          (c.displayName ? ('<span style="font-size:12.5px;color:var(--muted);">（LINE：' + escapeHtml(c.displayName) + '）</span>') : '') +
+        '</div>';
+
+      if (canReschedule) {
+        const headOps = document.createElement('div');
+        headOps.className = 'toolbar-group';
+        const reschBtn = document.createElement('button');
+        reschBtn.type = 'button';
+        reschBtn.className = 'btn btn-xs';
+        reschBtn.textContent = '修訂基準日';
+        reschBtn.onclick = function () { openAdminRescheduleModal(c); };
+        headOps.appendChild(reschBtn);
+        head.appendChild(headOps);
+      }
+      card.appendChild(head);
+
+      const caseMeta = document.createElement('div');
+      caseMeta.className = 'hint';
+      caseMeta.style.marginTop = '4px';
+      caseMeta.innerHTML =
+        (c.caseNote ? ('項目／單位：<strong>' + escapeHtml(c.caseNote) + '</strong> ｜ ') : '') +
+        '登記日：' + escapeHtml(c.createdAt) + ' ｜ 案號：' + escapeHtml(c.caseId);
+      card.appendChild(caseMeta);
+
+      
+      if (c.hasPendingApprove) {
+        const appBar = document.createElement('div');
+        appBar.className = 'approve-bar';
+        appBar.innerHTML =
+          '<span style="font-size:12.5px;font-weight:700;color:var(--warn-text);">尚未列入自動推播（共 ' + pendingApproveCnt + ' 個階段待確認）</span>' +
+          '<div class="toolbar-group"></div>';
+        const barOps = appBar.querySelector('.toolbar-group');
+
+        const okBtn = document.createElement('button');
+        okBtn.type = 'button'; okBtn.className = 'btn btn-ok btn-xs'; okBtn.textContent = '同意列入排程';
+        okBtn.onclick = function () { approveReminderCaseUI(c.caseId, true, c.applicantName); };
+        barOps.appendChild(okBtn);
+
+        const rejBtn = document.createElement('button');
+        rejBtn.type = 'button'; rejBtn.className = 'btn btn-danger btn-xs'; rejBtn.textContent = '退回取消';
+        rejBtn.onclick = function () { approveReminderCaseUI(c.caseId, false, c.applicantName); };
+        barOps.appendChild(rejBtn);
+
+        card.appendChild(appBar);
+      }
+
+      
+      if (c.primaryItem) {
+        card.appendChild(buildBoundStageBox(c.primaryItem, c, true));
+      }
+
+      
+      if (c.otherItems.length > 0) {
+        const pendCnt = c.otherItems.filter(function (x) { return x.status === '待發送' || x.status === '待審核' || x.status === '發送失敗'; }).length;
+        const doneCnt = c.otherItems.length - pendCnt;
+        const det = document.createElement('details');
+        det.className = 'stage-collapse';
+        det.innerHTML =
+          '<summary>' +
+            '<span>查看其餘 ' + c.otherItems.length + ' 個階段（尚待處理 ' + pendCnt + '、已完成／發送／取消 ' + doneCnt + '）</span>' +
+            '<span style="color:var(--cyan-dark);">展開／收合</span>' +
+          '</summary>';
+        c.otherItems.forEach(function (sub) {
+          det.appendChild(buildBoundStageBox(sub, c, false));
+        });
+        card.appendChild(det);
+      }
+
+      wrap.appendChild(card);
+    });
+  }
+
+  function buildBoundStageBox(it, caseObj, isPrimary) {
+    const isFinished = it.status === '已完成' || it.status === '已結案取消' || it.status === '已略過(過期)';
+    const box = document.createElement('div');
+    box.className = 'stage-sub-box' + (isPrimary ? ' is-primary-stage' : '') + (isFinished ? ' is-done' : '');
+
+    
+    const samePhaseOtherPending = (caseObj.items || []).filter(function (x) {
+      if (x.rowIndex === it.rowIndex) return false;
+      if ((x.phaseKey || '') !== (it.phaseKey || '')) return false;
+      return x.status === '待發送' || x.status === '待審核' || x.status === '發送失敗';
+    }).length;
+
+    const top = document.createElement('div');
+    top.className = 'faq-head';
+    top.innerHTML =
+      '<div class="faq-head-left">' +
+        (isPrimary ? '<span class="badge badge-dark">最近提醒</span>' : '') +
+        '<span class="badge ' + getBoundStageBadgeClass(it.status) + '">' + escapeHtml(it.status) + '</span>' +
+        (it.phaseLabel ? ('<span class="badge badge-day">' + escapeHtml(it.phaseLabel) + '</span>') : '') +
+        '<strong style="font-size:13.5px;color:var(--charcoal);">' + escapeHtml(it.stageName) + '</strong>' +
+      '</div>';
+
+    const ops = document.createElement('div');
+    ops.className = 'toolbar-group';
+
+    
+    if (it.status === '待發送' || it.status === '發送失敗' || (it.status === '已發送' && samePhaseOtherPending > 0)) {
+      const doneBtn = document.createElement('button');
+      doneBtn.type = 'button';
+      doneBtn.className = 'btn btn-ok btn-xs';
+      doneBtn.textContent = samePhaseOtherPending > 0 ? ('完成此項（-' + samePhaseOtherPending + '）') : '完成此項';
+      doneBtn.title = samePhaseOtherPending > 0
+        ? ('標記已完成，並自動取消同類型（' + (it.phaseLabel || '') + '）其餘 ' + samePhaseOtherPending + ' 筆提醒')
+        : '標記此階段已完成';
+      doneBtn.onclick = function () { completeReminderPhaseUI(it, samePhaseOtherPending); };
+      ops.appendChild(doneBtn);
+    }
+
+    if (it.status === '待發送' || it.status === '發送失敗' || it.status === '已發送') {
+      const sendBtn = document.createElement('button');
+      sendBtn.type = 'button';
+      sendBtn.className = 'btn btn-soft btn-xs';
+      sendBtn.textContent = it.status === '已發送' ? '補發' : '立即發送';
+      sendBtn.onclick = function () { sendSingleReminderUI(it); };
+      ops.appendChild(sendBtn);
+    }
+
+    if (it.status === '待發送' || it.status === '待審核' || it.status === '發送失敗') {
+      const cancelBtn = document.createElement('button');
+      cancelBtn.type = 'button';
+      cancelBtn.className = 'btn btn-danger btn-xs';
+      cancelBtn.textContent = '取消';
+      cancelBtn.onclick = function () { updateReminderRecordStatusUI(it, '已結案取消'); };
+      ops.appendChild(cancelBtn);
+    } else if (it.status === '已結案取消' || it.status === '已完成') {
+      const restoreBtn = document.createElement('button');
+      restoreBtn.type = 'button';
+      restoreBtn.className = 'btn btn-xs';
+      restoreBtn.textContent = '恢復';
+      restoreBtn.onclick = function () { updateReminderRecordStatusUI(it, '待發送'); };
+      ops.appendChild(restoreBtn);
+    }
+
+    top.appendChild(ops);
+    box.appendChild(top);
+
+    const meta = document.createElement('div');
+    meta.className = 'hint';
+    meta.style.marginTop = '5px';
+    meta.innerHTML =
+      '通知日：<strong>' + escapeHtml(it.remindDate) + ' ' + escapeHtml(it.sendHour) + ':00</strong>' +
+      ' ｜ ' + escapeHtml(it.dateFieldLabel || '基準日') + '：' + escapeHtml(it.baseDate) +
+      (it.deadlineDate && it.deadlineDate !== it.baseDate ? (' ｜ 截止日：<strong style="color:var(--err-text);">' + escapeHtml(it.deadlineDate) + '</strong>') : '') +
+      (it.resultNote ? ('<br>紀錄：' + escapeHtml(it.resultNote)) : '');
+    box.appendChild(meta);
+
+    return box;
+  }
+
+  function approveReminderCaseUI(caseId, approve, applicantName) {
+    const promptMsg = approve
+      ? ('確定要同意「' + (applicantName || caseId) + '」列入自動推播排程嗎？')
+      : ('確定要退回並取消「' + (applicantName || caseId) + '」的所有待審核階段嗎？');
+    if (!confirm(promptMsg)) return;
+
+    setLoading(true, approve ? '正在核准並列入排程...' : '正在退回取消...');
+    google.script.run
+      .withSuccessHandler(function (res) {
+        setLoading(false);
+        if (res && res.authError) { doLogout(true); return; }
+        if (res && res.ok) {
+          state.reminderRecords = res.records || [];
+          renderReminderRecords();
+          showToast(res.message || '審核完成', 'ok');
+        } else showToast((res && res.message) || '操作失敗', 'err');
+      })
+      .withFailureHandler(function (err) { setLoading(false); showToast('操作異常：' + (err.message || err), 'err'); })
+      .apiApproveReminderCase(state.token, caseId, approve);
+  }
+
+  function completeReminderPhaseUI(it, samePhaseOtherPending) {
+    const extra = samePhaseOtherPending > 0
+      ? ('\n\n系統將同時自動取消本案「' + (it.phaseLabel || '同類型') + '」其餘 ' + samePhaseOtherPending + ' 筆尚未發送的提醒（不同類型階段會完整保留）。')
+      : '';
+    if (!confirm('確定要將「' + it.stageName + '」標記為已完成嗎？' + extra)) return;
+
+    setLoading(true, '更新完成狀態與同類型排程...');
+    google.script.run
+      .withSuccessHandler(function (res) {
+        setLoading(false);
+        if (res && res.authError) { doLogout(true); return; }
+        if (res && res.ok) {
+          state.reminderRecords = res.records || [];
+          renderReminderRecords();
+          showToast(res.message || '已標記完成', 'ok');
+        } else showToast((res && res.message) || '更新失敗', 'err');
+      })
+      .withFailureHandler(function (err) { setLoading(false); showToast('更新異常：' + (err.message || err), 'err'); })
+      .apiCompleteReminderPhase(state.token, it.rowIndex);
+  }
+
+  function openAdminRescheduleModal(caseObj) {
+    document.getElementById('rrCaseId').value = caseObj.caseId;
+    document.getElementById('rrCaseSummary').innerHTML =
+      '<span><strong>' + escapeHtml(caseObj.applicantName || '-') + '</strong> ｜ ' +
+      escapeHtml(caseObj.applyType || '') +
+      (caseObj.caseNote ? ('（' + escapeHtml(caseObj.caseNote) + '）') : '') + '</span>';
+
+    const sel = document.getElementById('rrBaseDateKey');
+    sel.innerHTML = '';
+    const keyMap = {};
+    (caseObj.items || []).forEach(function (it) {
+      const k = it.baseDateKey || 'startDate';
+      if (!keyMap[k]) {
+        keyMap[k] = {
+          label: it.dateFieldLabel || '基準日期',
+          currentDate: it.baseDate || ''
+        };
+      }
+    });
+    state.rrCaseKeyMap = keyMap;
+
+    Object.keys(keyMap).forEach(function (k) {
+      const info = keyMap[k];
+      const opt = document.createElement('option');
+      opt.value = k;
+      opt.textContent = info.label + '（原日期：' + (info.currentDate || '未填') + '）';
+      sel.appendChild(opt);
+    });
+
+    onRrBaseDateKeyChange();
+    document.getElementById('remRescheduleModal').classList.remove('hidden');
+  }
+
+  function onRrBaseDateKeyChange() {
+    const k = document.getElementById('rrBaseDateKey').value;
+    const info = state.rrCaseKeyMap[k];
+    document.getElementById('rrNewDate').value = (info && info.currentDate) ? info.currentDate : '';
+  }
+
+  function saveAdminRescheduleUI() {
+    const caseId = document.getElementById('rrCaseId').value;
+    const baseDateKey = document.getElementById('rrBaseDateKey').value;
+    const newDate = (document.getElementById('rrNewDate').value || '').trim();
+    if (!newDate) { showToast('請選擇新的基準日期', 'err'); return; }
+
+    setLoading(true, '正在依國定假日表重算提醒日...');
+    google.script.run
+      .withSuccessHandler(function (res) {
+        setLoading(false);
+        if (res && res.authError) { doLogout(true); return; }
+        if (res && res.ok) {
+          closeModal('remRescheduleModal');
+          state.reminderRecords = res.records || [];
+          renderReminderRecords();
+          showToast(res.message || '基準日已修訂並重算', 'ok');
+        } else showToast((res && res.message) || '修訂失敗', 'err');
+      })
+      .withFailureHandler(function (err) { setLoading(false); showToast('修訂異常：' + (err.message || err), 'err'); })
+      .apiAdminRescheduleReminder(state.token, caseId, baseDateKey, newDate);
+  }
+
+  function sendSingleReminderUI(rec) {
+    if (!confirm('確定要立即發送「' + rec.stageName + '」提醒卡片給 ' + rec.applicantName + ' 嗎？')) return;
+    setLoading(true, '發送提醒中...');
+    google.script.run
+      .withSuccessHandler(function (res) {
+        setLoading(false);
+        if (res && res.authError) { doLogout(true); return; }
+        if (res && res.records) state.reminderRecords = res.records;
+        if (res && res.pushStats) state.reminderPushStats = res.pushStats;
+        if (state.role === 'admin') renderReminderDashboard();
+        renderReminderRecords();
+        showToast((res && res.message) || '發送完成', (res && res.ok) ? 'ok' : 'err');
+      })
+      .withFailureHandler(function (err) { setLoading(false); showToast('發送異常：' + (err.message || err), 'err'); })
+      .apiSendSingleReminderNow(state.token, rec.rowIndex);
+  }
+
+  function updateReminderRecordStatusUI(rec, newStatus) {
+    setLoading(true, '更新狀態中...');
+    google.script.run
+      .withSuccessHandler(function (res) {
+        setLoading(false);
+        if (res && res.authError) { doLogout(true); return; }
+        if (res && res.ok) { state.reminderRecords = res.records || []; renderReminderRecords(); showToast('已更新為「' + newStatus + '」', 'ok'); }
+        else showToast((res && res.message) || '更新失敗', 'err');
+      })
+      .withFailureHandler(function (err) { setLoading(false); showToast('更新異常：' + (err.message || err), 'err'); })
+      .apiUpdateReminderRecordStatus(state.token, rec.rowIndex, newStatus);
+  }
+
+  
   function renderOfficialSchedulesTable() {
     const tbody = document.getElementById('officialScheduleTableBody');
     if (!tbody) return;
@@ -4345,122 +4858,6 @@
       })
       .withFailureHandler(function (err) { setLoading(false); showToast('刪除失敗：' + (err.message || err), 'err'); })
       .apiDeleteReminderTemplate(state.token, tpl.rowIndex);
-  }
-
-  function renderReminderRecords() {
-    const scopeFilter = document.getElementById('remRecScopeFilter').value || 'MY_SCOPE';
-    const stFilter = document.getElementById('remRecStatusFilter').value || 'ALL';
-    const q = (document.getElementById('remRecSearch').value || '').trim().toLowerCase();
-    const wrap = document.getElementById('remRecordList');
-    if (!wrap) return;
-    const editable = canEditNow();
-    wrap.innerHTML = '';
-
-    const list = (state.reminderRecords || []).filter(function (r) {
-      if (scopeFilter === 'MY_SCOPE' && !matchesOwnerApplyType(r.applyType, '')) return false;
-      if (stFilter !== 'ALL' && r.status !== stFilter) return false;
-      if (q) {
-        const hay = (r.caseId + ' ' + r.applicantName + ' ' + r.displayName + ' ' + r.applyType + ' ' + r.caseNote + ' ' + r.stageName).toLowerCase();
-        if (hay.indexOf(q) === -1) return false;
-      }
-      return true;
-    });
-
-    document.getElementById('remRecCountLabel').textContent = '共 ' + list.length + ' 筆';
-
-    if (!list.length) {
-      wrap.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted);">目前尚無符合條件的自動提醒名單。</div>';
-      return;
-    }
-
-    list.forEach(function (r) {
-      const card = document.createElement('div');
-      card.className = 'faq-card ' + (r.status === '待發送' ? 'is-manual' : (r.status === '發送失敗' ? 'is-manual-due' : 'is-off'));
-
-      let stCls = 'badge-off';
-      if (r.status === '待發送') stCls = 'badge-warn';
-      else if (r.status === '已發送') stCls = 'badge-on';
-      else if (r.status === '發送失敗') stCls = 'badge-err';
-
-      const head = document.createElement('div');
-      head.className = 'faq-head';
-      head.innerHTML =
-        '<div class="faq-head-left">' +
-          '<span class="badge ' + stCls + '">' + escapeHtml(r.status) + '</span>' +
-          '<span class="badge badge-cat">' + escapeHtml(r.applyType) + '</span>' +
-          '<strong style="font-size:14.5px;color:var(--charcoal);">' + escapeHtml(r.applicantName || '-') + '</strong>' +
-          (r.displayName ? ('<span style="font-size:12.5px;color:var(--muted);">（LINE：' + escapeHtml(r.displayName) + '）</span>') : '') +
-        '</div>';
-
-      if (editable) {
-        const ops = document.createElement('div');
-        ops.className = 'toolbar-group';
-
-        const sendBtn = document.createElement('button');
-        sendBtn.type = 'button'; sendBtn.className = 'btn btn-soft btn-xs';
-        sendBtn.textContent = r.status === '已發送' ? '補發' : '立即發送';
-        sendBtn.onclick = function () { sendSingleReminderUI(r); };
-        ops.appendChild(sendBtn);
-
-        if (r.status === '待發送' || r.status === '發送失敗') {
-          const cancelBtn = document.createElement('button');
-          cancelBtn.type = 'button'; cancelBtn.className = 'btn btn-danger btn-xs'; cancelBtn.textContent = '取消';
-          cancelBtn.onclick = function () { updateReminderRecordStatusUI(r, '已結案取消'); };
-          ops.appendChild(cancelBtn);
-        } else if (r.status === '已結案取消') {
-          const restoreBtn = document.createElement('button');
-          restoreBtn.type = 'button'; restoreBtn.className = 'btn btn-xs'; restoreBtn.textContent = '恢復';
-          restoreBtn.onclick = function () { updateReminderRecordStatusUI(r, '待發送'); };
-          ops.appendChild(restoreBtn);
-        }
-        head.appendChild(ops);
-      }
-      card.appendChild(head);
-
-      const info = document.createElement('div');
-      info.className = 'hint';
-      info.style.marginTop = '6px';
-      info.innerHTML =
-        '<strong>' + escapeHtml(r.stageName) + '</strong>' +
-        ' ｜ 通知日：' + escapeHtml(r.remindDate) + ' ' + escapeHtml(r.sendHour) + ':00' +
-        '<br>基準日：' + escapeHtml(r.baseDate) +
-        (r.deadlineDate && r.deadlineDate !== r.baseDate ? (' ｜ 截止日：<strong style="color:var(--err-text);">' + escapeHtml(r.deadlineDate) + '</strong>') : '') +
-        (r.caseNote ? (' ｜ 備註：' + escapeHtml(r.caseNote)) : '') +
-        (r.resultNote ? ('<br>紀錄：' + escapeHtml(r.resultNote)) : '');
-      card.appendChild(info);
-
-      wrap.appendChild(card);
-    });
-  }
-
-  function sendSingleReminderUI(rec) {
-    if (!confirm('確定要立即發送「' + rec.stageName + '」提醒卡片給 ' + rec.applicantName + ' 嗎？')) return;
-    setLoading(true, '發送提醒中...');
-    google.script.run
-      .withSuccessHandler(function (res) {
-        setLoading(false);
-        if (res && res.authError) { doLogout(true); return; }
-        if (res && res.records) state.reminderRecords = res.records;
-        if (res && res.pushStats) state.reminderPushStats = res.pushStats;
-        if (state.role === 'admin') renderReminderDashboard();
-        renderReminderRecords();
-        showToast((res && res.message) || '發送完成', (res && res.ok) ? 'ok' : 'err');
-      })
-      .withFailureHandler(function (err) { setLoading(false); showToast('發送異常：' + (err.message || err), 'err'); })
-      .apiSendSingleReminderNow(state.token, rec.rowIndex);
-  }
-
-  function updateReminderRecordStatusUI(rec, newStatus) {
-    setLoading(true, '更新狀態中...');
-    google.script.run
-      .withSuccessHandler(function (res) {
-        setLoading(false);
-        if (res && res.authError) { doLogout(true); return; }
-        if (res && res.ok) { state.reminderRecords = res.records || []; renderReminderRecords(); showToast('已更新為「' + newStatus + '」', 'ok'); }
-        else showToast((res && res.message) || '更新失敗', 'err');
-      })
-      .withFailureHandler(function (err) { setLoading(false); showToast('更新異常：' + (err.message || err), 'err'); })
-      .apiUpdateReminderRecordStatus(state.token, rec.rowIndex, newStatus);
   }
 
   
