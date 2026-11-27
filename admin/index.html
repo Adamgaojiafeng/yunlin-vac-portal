@@ -338,9 +338,7 @@
       border-color: #CFE9EC;
       border-left: 3px solid var(--cyan);
     }
-    .stage-sub-box.is-done {
-      opacity: 0.68;
-    }
+    .stage-sub-box.is-done { opacity: 0.68; }
     .stage-collapse {
       margin-top: 9px;
       border: 1px dashed #D8DCE2;
@@ -1981,6 +1979,8 @@
   const AUTH_TTL_MS = 90 * 24 * 60 * 60 * 1000;
   const FLEX_TAG_TRAINING_CALC = '[FLEX:CALC_TRAINING_DEADLINE]';
   const FLEX_CALC_GUIDE_TEXT = '您可直接在本官方 LINE 輸入「備案日試算」，點選小日曆即可自動幫您計算開訓前第 8 個工作日（最晚申請備案日）。';
+  const FLEX_CAROUSEL_TAG_RE = /^\[FLEX:(?:CAROUSEL|CARD)(?::#[0-9A-Fa-f]{6})?\]\s*/i;
+  const FLEX_BTN_SYNTAX_RE = /\[BTN:([^|\]]+)\|([^\]]+)\]/g;
 
   const PUBLIC_EMOJIS = ['📌', '📢', '📞', '📅', '✅', '⚠️', '🔗', '📍', '💡', '📋', '🏫', '🎓', '💰', '📝', '🧾', '📮', '🛠️', '😊'];
 
@@ -2028,7 +2028,7 @@
       items: [
         '<strong>最上方連結列</strong>：點「複製連結」傳給民眾，對方填寫並經後台同意後，就會在期限前自動收到 LINE 提醒。',
         '<strong>左欄「手動提醒排程」</strong>：針對不想綁定自動提醒的申請人，點「新增手動提醒」可直接帶入「手動名單_*」補填缺漏日期，或手動建檔套用排程與文案；時間到按「複製訊息」貼到旁邊的官方 LINE，傳完點「已傳送」，不需要的階段隨時可點「移除」。',
-        '<strong>右欄「常用回覆」</strong>：預設只顯示您負責業務的問答，輸入關鍵字篩選後按「複製文字」即可貼回 LINE（可直接微調文字再複製）。'
+        '<strong>右欄「常用回覆」</strong>：預設只顯示您負責業務的問答，輸入關鍵字篩選後按「複製文字」即可貼回 LINE（輪播卡片標記會自動濾除，只保留乾淨純文字與網址）。'
       ]
     },
     assist: {
@@ -2051,7 +2051,7 @@
       title: '問答管理｜操作說明',
       items: [
         '<strong>預設篩選</strong>：列表會先依您的負責業務篩選，也可切換下拉選單查看其他分類。',
-        '<strong>新增與編輯</strong>：點「新增問答」可建立文字、圖片、語音或職訓備案試算卡；也可使用「AI 批次建表」從簡章或公文快速拆解多筆問答。'
+        '<strong>輪播卡片編輯</strong>：點「新增問答」並在訊息 1 按「輪播卡」加入 <code>[FLEX:CAROUSEL]</code>，即可將訊息 1～5 自動組成橫向滑動多頁卡片；按鈕使用 <code>[BTN:文字|目標]</code> 語法。'
       ]
     },
     settings: {
@@ -2554,6 +2554,30 @@
   
   
   function isFlexTag(str) { return String(str || '').trim() === FLEX_TAG_TRAINING_CALC; }
+
+  function isCarouselTag(str) {
+    return FLEX_CAROUSEL_TAG_RE.test(String(str || '').trim());
+  }
+
+  function cleanCarouselTextForCopy(raw) {
+    const liffBase = String(state.reminderLiffUrl || (state.settings && state.settings.liffUrl) || '').trim();
+    let txt = String(raw || '').replace(/\r\n/g, '\n');
+    txt = txt.replace(FLEX_CAROUSEL_TAG_RE, '');
+    txt = txt.replace(/\n\s*---+\s*\n/g, '\n\n');
+    txt = txt.replace(FLEX_BTN_SYNTAX_RE, function (_all, lbl, tgt) {
+      const cleanLbl = String(lbl || '').trim();
+      let cleanTgt = String(tgt || '').trim();
+      if (cleanTgt.indexOf('{LIFF_URL}') !== -1) {
+        cleanTgt = liffBase ? cleanTgt.replace(/\{LIFF_URL\}/g, liffBase) : '';
+      }
+      if (/^https?:\/\//i.test(cleanTgt)) return cleanLbl + '：' + cleanTgt;
+      if (cleanTgt.toUpperCase() === 'CALC_TRAINING_DEADLINE') {
+        return '（可於官方 LINE 輸入「備案日試算」開啟小日曆計算最晚備案日）';
+      }
+      return '';
+    });
+    return txt.replace(/\n{3,}/g, '\n\n').trim();
+  }
 
   function isAudioUrl(str) {
     const s = String(str || '').trim();
@@ -3450,6 +3474,7 @@
     items.forEach(function (item) {
       const key = getFaqKey(item);
       const isPinned = state.pinnedKeys.has(key);
+      const isItemCarousel = isCarouselTag(item.msgs && item.msgs[0]);
       const card = document.createElement('div');
       card.className = 'faq-card' + (item.status === '僅白天' ? ' is-day' : '');
 
@@ -3478,6 +3503,13 @@
       catBadge.textContent = item.category;
       left.appendChild(catBadge);
 
+      if (isItemCarousel) {
+        const carBadge = document.createElement('span');
+        carBadge.className = 'badge badge-cyan';
+        carBadge.textContent = '輪播卡片';
+        left.appendChild(carBadge);
+      }
+
       const kwEl = document.createElement('span');
       kwEl.className = 'kw-line' + (state.dayExpandAll ? '' : ' collapsed');
       kwEl.textContent = item.keywords;
@@ -3505,7 +3537,7 @@
             if (t) parts.push(t);
           });
           let out = parts.join('\n\n');
-          if (item.contact) out += '\n\n聯繫電話：' + item.contact;
+          if (item.contact && out.indexOf(item.contact) === -1) out += '\n\n聯繫電話：' + item.contact;
           copyTextValue(out, '已複製文字，可直接貼回 LINE');
         };
         right.appendChild(copyAllBtn);
@@ -3567,9 +3599,11 @@
           const audio = document.createElement('audio'); audio.controls = true; audio.style.width = '100%'; audio.src = clean;
           box.appendChild(audio);
         } else {
+          const cleanCopyText = cleanCarouselTextForCopy(raw);
+          const slotLabel = isItemCarousel ? ('第 ' + (mIdx + 1) + ' 頁（已濾除按鈕標記，可直接微調）') : ('訊息 ' + (mIdx + 1) + '（可直接微調）');
           const bHead = document.createElement('div');
           bHead.className = 'msg-bubble-head';
-          bHead.innerHTML = '<span>訊息 ' + (mIdx + 1) + '（可直接微調）</span>';
+          bHead.innerHTML = '<span>' + slotLabel + '</span>';
           const cpBtn = document.createElement('button');
           cpBtn.type = 'button'; cpBtn.className = 'btn btn-xs'; cpBtn.textContent = '複製此段';
           bHead.appendChild(cpBtn);
@@ -3577,8 +3611,8 @@
 
           const ta = document.createElement('textarea');
           ta.className = 'msg-edit-area';
-          ta.value = raw;
-          ta.rows = Math.min(9, Math.max(2, raw.split('\n').length + 1));
+          ta.value = cleanCopyText;
+          ta.rows = Math.min(9, Math.max(2, cleanCopyText.split('\n').length + 1));
           ta.onfocus = function () { state.lastFocusedTextarea = ta; };
           cpBtn.onclick = function () { copyTextValue(ta.value, '已複製訊息 ' + (mIdx + 1)); };
           box.appendChild(ta);
@@ -4026,7 +4060,6 @@
     if (!wrap) return;
     wrap.innerHTML = '';
 
-    
     const caseMap = {};
     const allCases = [];
     (state.reminderRecords || []).forEach(function (r) {
@@ -4046,7 +4079,6 @@
       caseMap[cid].items.push(r);
     });
 
-    
     const scopedCases = allCases.filter(function (c) {
       if (scopeFilter === 'MY_SCOPE' && !matchesOwnerApplyType(c.applyType, '')) return false;
       return true;
@@ -4065,7 +4097,6 @@
       }
     }
 
-    
     const filteredCases = scopedCases.filter(function (c) {
       if (stFilter !== 'ALL') {
         if (!c.items.some(function (it) { return it.status === stFilter; })) return false;
@@ -4078,7 +4109,6 @@
       return true;
     });
 
-    
     filteredCases.forEach(function (c) {
       c.items.sort(function (a, b) {
         const d = String(a.remindDate || '9999-99-99').localeCompare(String(b.remindDate || '9999-99-99'));
@@ -4102,7 +4132,6 @@
       c.sortDate = (primary && primary.remindDate) || '9999-99-99';
     });
 
-    
     filteredCases.sort(function (a, b) {
       const pa = a.hasPendingApprove ? 0 : (a.hasActive ? 1 : 2);
       const pb = b.hasPendingApprove ? 0 : (b.hasActive ? 1 : 2);
@@ -4163,7 +4192,6 @@
         '登記日：' + escapeHtml(c.createdAt) + ' ｜ 案號：' + escapeHtml(c.caseId);
       card.appendChild(caseMeta);
 
-      
       if (c.hasPendingApprove) {
         const appBar = document.createElement('div');
         appBar.className = 'approve-bar';
@@ -4185,12 +4213,10 @@
         card.appendChild(appBar);
       }
 
-      
       if (c.primaryItem) {
         card.appendChild(buildBoundStageBox(c.primaryItem, c, true));
       }
 
-      
       if (c.otherItems.length > 0) {
         const pendCnt = c.otherItems.filter(function (x) { return x.status === '待發送' || x.status === '待審核' || x.status === '發送失敗'; }).length;
         const doneCnt = c.otherItems.length - pendCnt;
@@ -4216,7 +4242,6 @@
     const box = document.createElement('div');
     box.className = 'stage-sub-box' + (isPrimary ? ' is-primary-stage' : '') + (isFinished ? ' is-done' : '');
 
-    
     const samePhaseOtherPending = (caseObj.items || []).filter(function (x) {
       if (x.rowIndex === it.rowIndex) return false;
       if ((x.phaseKey || '') !== (it.phaseKey || '')) return false;
@@ -4236,7 +4261,6 @@
     const ops = document.createElement('div');
     ops.className = 'toolbar-group';
 
-    
     if (it.status === '待發送' || it.status === '發送失敗' || (it.status === '已發送' && samePhaseOtherPending > 0)) {
       const doneBtn = document.createElement('button');
       doneBtn.type = 'button';
@@ -4928,6 +4952,7 @@
     }
 
     list.forEach(function (item) {
+      const isItemCarousel = isCarouselTag(item.msgs && item.msgs[0]);
       const card = document.createElement('div');
       card.className = 'faq-card' + (item.status === '僅白天' ? ' is-day' : (item.status === '停用' ? ' is-off' : ''));
 
@@ -4939,7 +4964,8 @@
       const stClass = item.status === '啟用' ? 'badge-on' : (item.status === '僅白天' ? 'badge-day' : 'badge-off');
       left.innerHTML =
         '<span class="badge ' + stClass + '">' + escapeHtml(item.status) + '</span>' +
-        '<span class="badge badge-cat">' + escapeHtml(item.category) + ' #' + item.rowIndex + '</span>';
+        '<span class="badge badge-cat">' + escapeHtml(item.category) + ' #' + item.rowIndex + '</span>' +
+        (isItemCarousel ? '<span class="badge badge-cyan">輪播卡片</span>' : '');
 
       const kwSpan = document.createElement('span');
       kwSpan.className = 'kw-line collapsed';
@@ -4993,7 +5019,8 @@
           const clean = stripHash(t);
           line.innerHTML = '<strong>語音（訊息 ' + (i + 1) + '）</strong><br><audio controls style="max-width:340px;width:100%;margin-top:4px;" src="' + escapeHtml(clean) + '"></audio>';
         } else {
-          line.innerHTML = '<div style="white-space:pre-wrap;"><strong>訊息 ' + (i + 1) + '：</strong>' + escapeHtml(t) + '</div>';
+          const prefixTitle = isItemCarousel ? ('第 ' + (i + 1) + ' 頁：') : ('訊息 ' + (i + 1) + '：');
+          line.innerHTML = '<div style="white-space:pre-wrap;"><strong>' + prefixTitle + '</strong>' + escapeHtml(t) + '</div>';
         }
         previewWrap.appendChild(line);
       });
@@ -5064,6 +5091,7 @@
         '<div class="slot-top">' +
           '<strong style="color:var(--charcoal);font-size:13.5px;">訊息 ' + (i + 1) + (i === 0 ? '（必填）' : '（選填）') + '</strong>' +
           '<div class="toolbar-group">' +
+            (i === 0 ? '<button type="button" class="btn btn-cyan btn-xs" onclick="insertCarouselTagToSlot(0)">輪播卡</button>' : '') +
             '<button type="button" class="btn btn-xs" onclick="pickImageForSlot(' + i + ')">圖片</button>' +
             '<button type="button" class="btn btn-xs" onclick="pickAudioForSlot(' + i + ')">語音</button>' +
             '<button type="button" class="btn btn-xs" onclick="insertFlexCalcToSlot(' + i + ')">試算卡</button>' +
@@ -5079,11 +5107,28 @@
       const ta = box.querySelector('#editMsg_' + i);
       ta.value = msgs[i] || '';
       ta.onfocus = function () { state.lastFocusedTextarea = ta; };
-      ta.oninput = function () { updateSlotPreview(i); };
-      updateSlotPreview(i);
+      ta.oninput = function () {
+        updateSlotPreview(i);
+        if (i === 0) {
+          for (let j = 1; j < 5; j++) updateSlotPreview(j);
+        }
+      };
     }
 
+    for (let k = 0; k < 5; k++) updateSlotPreview(k);
+
     document.getElementById('faqModal').classList.remove('hidden');
+  }
+
+  function insertCarouselTagToSlot(idx) {
+    const ta = document.getElementById('editMsg_' + idx);
+    if (!ta) return;
+    const cur = (ta.value || '').trim();
+    if (!isCarouselTag(cur)) {
+      ta.value = '[FLEX:CAROUSEL]\n' + cur;
+    }
+    for (let j = 0; j < 5; j++) updateSlotPreview(j);
+    showToast('已於訊息 1 開頭標記 [FLEX:CAROUSEL]（各格將自動轉為橫向多頁卡片）', 'ok');
   }
 
   function insertFlexCalcToSlot(idx) {
@@ -5097,9 +5142,14 @@
   function updateSlotPreview(idx) {
     const ta = document.getElementById('editMsg_' + idx);
     const pv = document.getElementById('slotPreview_' + idx);
+    if (!ta || !pv) return;
     const val = (ta.value || '').trim();
     if (!val) { pv.classList.add('hidden'); pv.innerHTML = ''; return; }
     pv.classList.remove('hidden');
+
+    const slot0El = document.getElementById('editMsg_0');
+    const isRowCarousel = isCarouselTag(slot0El ? slot0El.value : '');
+
     if (isFlexTag(val)) {
       pv.innerHTML = '<div style="color:var(--ok-text);font-weight:600;">將發送職訓備案日小日曆試算卡</div>';
     } else if (isImageUrl(val)) {
@@ -5111,6 +5161,11 @@
     } else if (isAudioUrl(val)) {
       const clean = stripHash(val);
       pv.innerHTML = '<div style="color:var(--ok-text);font-weight:600;margin-bottom:4px;">將以語音氣泡發送</div><audio controls style="width:100%;max-width:360px;" src="' + escapeHtml(clean) + '"></audio>';
+    } else if (isCarouselTag(val) || (idx > 0 && isRowCarousel)) {
+      const btnCount = (val.match(FLEX_BTN_SYNTAX_RE) || []).length;
+      const cleanLen = cleanCarouselTextForCopy(val).length;
+      pv.innerHTML = '<span style="color:var(--cyan-dark);font-weight:600;">將以 Flex Carousel 卡片頁面發送</span>' +
+        '<span style="color:var(--muted);margin-left:8px;">淨文字約 ' + cleanLen + ' 字｜內嵌按鈕 ' + btnCount + ' 顆</span>';
     } else {
       pv.innerHTML = '<span style="color:var(--muted);">目前 ' + val.length + ' 字</span>';
     }
