@@ -168,6 +168,27 @@
     }
 
      
+    .survey-lookup-box {
+      background: #F0FAF8;
+      border: 1.5px solid #99DDD3;
+      border-radius: 12px;
+      padding: 13px 14px;
+      margin-bottom: 16px;
+    }
+    .survey-lookup-title {
+      font-weight: 800;
+      font-size: 14.5px;
+      color: var(--teal);
+      margin-bottom: 4px;
+    }
+    .survey-lookup-grid {
+      display: grid;
+      grid-template-columns: 1fr 115px;
+      gap: 8px;
+      margin: 10px 0 8px;
+    }
+
+     
     .helper-details {
       background: #F4F8F5;
       border: 1.5px solid #C6DACD;
@@ -260,7 +281,6 @@
     }
     .date-grid .field { margin-bottom: 0; }
 
-     
     .preselect-pill {
       display: inline-block;
       margin-top: 6px;
@@ -342,8 +362,9 @@
     .btn-primary:active { background: var(--primary-dark); }
     .btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
     .btn-teal { background: #E6F4F1; color: var(--teal); border-color: #99F6E4; }
+    .btn-teal-solid { background: var(--teal); color: #FFF; border-color: var(--teal); }
     .btn-danger { background: var(--err-bg); color: var(--err-text); border-color: var(--err-border); }
-    .btn-sm { padding: 8px 12px; font-size: 13.5px; border-radius: 8px; }
+    .btn-sm { padding: 9px 12px; font-size: 14px; border-radius: 9px; }
     .btn-xs { padding: 4px 9px; font-size: 12px; border-radius: 6px; width: auto; flex-shrink: 0; }
     .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
 
@@ -507,6 +528,21 @@
           </div>
 
           
+          <div id="vtcSurveyPanel" class="survey-lookup-box hidden">
+            <div class="survey-lookup-title">已填過 116 年職訓登記問卷？一鍵帶入班名與日期</div>
+            <div class="hint" style="margin-top:0;">輸入填寫問卷時的姓名與聯繫電話末 4 碼，系統立即自動帶入您登記的班別與報名／訓練日期（電話僅供當下核對，不會留存）。</div>
+            <div class="survey-lookup-grid">
+              <input id="vtcLookupName" class="input" type="text" maxlength="30" style="padding:9px 11px;font-size:15px;" placeholder="問卷填寫姓名">
+              <input id="vtcLookupLast4" class="input" type="tel" inputmode="numeric" maxlength="4" style="padding:9px 11px;font-size:15px;text-align:center;" placeholder="電話末4碼">
+            </div>
+            <button id="vtcLookupBtn" type="button" class="btn btn-teal-solid btn-sm" onclick="lookupVtcSurveyData()">查詢並自動帶入問卷資料</button>
+            <div id="vtcMultiWrap" class="hidden" style="margin-top:10px;">
+              <label style="display:block;font-size:12.5px;font-weight:700;color:var(--teal);margin-bottom:4px;">您有多筆問卷登記，可切換選擇：</label>
+              <select id="vtcMultiSelect" class="select" style="padding:8px 34px 8px 10px;font-size:14px;" onchange="applyVtcSurveyMatch(Number(this.value))"></select>
+            </div>
+          </div>
+
+          
           <div class="field">
             <label for="applicantName">申請人姓名<span class="req">*</span></label>
             <input id="applicantName" class="input" type="text" maxlength="30" placeholder="請輸入您的姓名（供提醒訊息稱呼使用）">
@@ -609,7 +645,7 @@
     OA_ADD_FRIEND_URL: ''
   }, window.APP_CONFIG || {});
 
-  const SESSION_PARAM_KEY = 'PENDING_REMINDER_PARAMS_V63';
+  const SESSION_PARAM_KEY = 'PENDING_REMINDER_PARAMS_V64';
   const VALID_GROUPS = ['榮民就業', '二類就業', '訓後就業', '就學進修', '就業考試', '職業訓練'];
 
   const GROUP_NOTE_LABELS = {
@@ -622,18 +658,30 @@
   };
 
   const TYPE_ALIASES = {
-    training:       '會外職訓補助（未申請）',
-    training_ok:    '會外職訓補助（已審核通過）',
-    vtc:            '職訓中心自辦/委外課程',
-    education:      '就讀正式學籍（未就讀）',
-    education_in:   '就讀正式學籍（已就讀）',
-    credit:         '進修大專校院（學分班）',
-    exam:           '就業考試補助',
-    employment:     '榮民就業－已到職',
-    employment_pre: '榮民就業－未到職',
-    employment2:    '二類就業－已到職',
-    employment2_pre:'二類就業－未到職',
-    posttrain:      '訓後就業'
+    training:        '會外職訓補助（未申請）',
+    training_ok:     '會外職訓補助（已審核通過）',
+    vtc:             '職訓中心自辦/委外課程',
+    education:       '就讀正式學籍（未就讀）',
+    education_in:    '就讀正式學籍（已就讀）',
+    credit:          '進修大專校院（學分班）',
+    exam:            '就業考試補助',
+    employment:      '榮民就業－已到職',
+    employment_pre:  '榮民就業－未到職',
+    employment2:     '二類就業－已到職',
+    employment2_pre: '二類就業－未到職',
+    posttrain:       '訓後就業'
+  };
+
+  const TYPE_FUZZY_HINTS = {
+    vtc: ['職訓中心', '自辦', '委外'],
+    training: ['會外職訓'],
+    training_ok: ['會外職訓', '審核'],
+    education: ['正式學籍'],
+    credit: ['學分班'],
+    exam: ['考試'],
+    employment: ['榮民就業'],
+    employment2: ['二類就業'],
+    posttrain: ['訓後就業']
   };
 
   const GROUP_ALIASES = {
@@ -649,36 +697,42 @@
     idToken: '',
     types: [],
     officialSchedules: [],
+    vtcLookupMatches: [],
     activeGroup: '榮民就業',
     selectedScheduleId: '',
     selectedIsFullTime: false,
     autoFilledNote: '',
+    urlAlreadyPrefilledDates: false,
     previewReqSeq: 0
   };
 
-  function normalizeMatchText(str) {
-    return String(str || '')
-      .toLowerCase()
-      .replace(/[（(\[【]/g, '(')
-      .replace(/[）)\]】]/g, ')')
-      .replace(/[－—–\-]/g, '-')
-      .replace(/\s+/g, '');
+  function safeDecodeParam(v) {
+    let s = String(v || '').trim();
+    for (let i = 0; i < 2; i++) {
+      if (!/%[0-9A-Fa-f]{2}/.test(s)) break;
+      try {
+        const dec = decodeURIComponent(s);
+        if (dec === s) break;
+        s = dec;
+      } catch (e) { break; }
+    }
+    return s;
   }
 
   function extractParamsFromSearch(searchStr) {
     const sp = new URLSearchParams(searchStr || '');
     return {
-      type:         (sp.get('type') || '').trim(),
-      group:        (sp.get('group') || '').trim(),
-      name:         (sp.get('name') || '').trim(),
-      note:         (sp.get('note') || sp.get('course') || sp.get('className') || '').trim(),
-      regStart:     (sp.get('regStart') || '').trim(),
-      regEnd:       (sp.get('regEnd') || '').trim(),
-      startDate:    (sp.get('startDate') || '').trim(),
-      endDate:      (sp.get('endDate') || '').trim(),
-      subsidyStart: (sp.get('subsidyStart') || '').trim(),
-      subsidyEnd:   (sp.get('subsidyEnd') || '').trim(),
-      ft:           (sp.get('ft') || '').trim()
+      type:         safeDecodeParam(sp.get('type')),
+      group:        safeDecodeParam(sp.get('group')),
+      name:         safeDecodeParam(sp.get('name')),
+      note:         safeDecodeParam(sp.get('note') || sp.get('course') || sp.get('className')),
+      regStart:     safeDecodeParam(sp.get('regStart')),
+      regEnd:       safeDecodeParam(sp.get('regEnd')),
+      startDate:    safeDecodeParam(sp.get('startDate')),
+      endDate:      safeDecodeParam(sp.get('endDate')),
+      subsidyStart: safeDecodeParam(sp.get('subsidyStart')),
+      subsidyEnd:   safeDecodeParam(sp.get('subsidyEnd')),
+      ft:           safeDecodeParam(sp.get('ft'))
     };
   }
 
@@ -696,9 +750,7 @@
       let stateStr = topSp.get('liff.state') || '';
       if (stateStr) {
         try {
-          if (/^%(2F|3F)/i.test(stateStr) || (stateStr.indexOf('=') === -1 && stateStr.indexOf('%3D') !== -1)) {
-            stateStr = decodeURIComponent(stateStr);
-          }
+          stateStr = safeDecodeParam(stateStr);
           const qIdx = stateStr.indexOf('?');
           p = extractParamsFromSearch(qIdx !== -1 ? stateStr.slice(qIdx) : stateStr);
         } catch (e) {}
@@ -707,8 +759,13 @@
 
     if (!hasAnyParam(p)) {
       try {
-        const saved = sessionStorage.getItem(SESSION_PARAM_KEY);
-        if (saved) p = JSON.parse(saved) || p;
+        const saved = sessionStorage.getItem(SESSION_PARAM_KEY) || localStorage.getItem(SESSION_PARAM_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && (!parsed._ts || (Date.now() - parsed._ts) < 10 * 60 * 1000)) {
+            p = parsed;
+          }
+        }
       } catch (e) {}
     }
     return p;
@@ -717,172 +774,80 @@
   function cacheInitialParams() {
     const p = readInitialParams();
     if (hasAnyParam(p)) {
-      try { sessionStorage.setItem(SESSION_PARAM_KEY, JSON.stringify(p)); } catch (e) {}
+      const payload = JSON.stringify(Object.assign({ _ts: Date.now() }, p));
+      try { sessionStorage.setItem(SESSION_PARAM_KEY, payload); } catch (e) {}
+      try { localStorage.setItem(SESSION_PARAM_KEY, payload); } catch (e) {}
     }
   }
 
-  function resolvePreferredGroup(p) {
-    if (p.group) {
-      const target = GROUP_ALIASES[p.group.toLowerCase()] || p.group;
-      const found = VALID_GROUPS.find(function (g) { return g === target || g.indexOf(target) !== -1; });
-      if (found) return found;
+  function findMatchedTypeByParam(rawType) {
+    const norm = function (s) { return String(s || '').replace(/／/g, '/').trim(); };
+    const key = String(rawType || '').trim().toLowerCase();
+    const aliasTarget = norm(TYPE_ALIASES[key] || rawType);
+
+    let matched = app.types.find(function (t) { return norm(t.applyType) === aliasTarget; }) ||
+      app.types.find(function (t) { return norm(t.applyType).indexOf(aliasTarget) !== -1; });
+
+    if (!matched && TYPE_FUZZY_HINTS[key]) {
+      const hints = TYPE_FUZZY_HINTS[key];
+      matched = app.types.find(function (t) {
+        return hints.some(function (h) { return String(t.applyType || '').indexOf(h) !== -1; });
+      });
     }
-    const rawType = String(p.type || '').trim().toLowerCase();
-    if (rawType === 'training' || rawType === 'training_ok' || rawType === 'vtc' || /職訓/.test(p.type || '')) return '職業訓練';
-    if (rawType === 'exam' || /考試/.test(p.type || '')) return '就業考試';
-    if (rawType === 'education' || rawType === 'education_in' || rawType === 'credit' || /學籍|學分|就學|進修/.test(p.type || '')) return '就學進修';
-    if (rawType === 'posttrain' || /訓後/.test(p.type || '')) return '訓後就業';
-    if (rawType === 'employment2' || rawType === 'employment2_pre' || /二類/.test(p.type || '')) return '二類就業';
-    if (rawType === 'employment' || rawType === 'employment_pre' || /榮民/.test(p.type || '')) return '榮民就業';
-    return '';
-  }
-
-  function findMatchedType(rawType, preferredGroup) {
-    if (!rawType || !app.types.length) return null;
-    const rawKey = String(rawType).trim().toLowerCase();
-    const aliasTarget = TYPE_ALIASES[rawKey] || rawType;
-    const normTarget = normalizeMatchText(aliasTarget);
-    const normRaw = normalizeMatchText(rawType);
-
-    
-    let matched = app.types.find(function (t) {
-      const n = normalizeMatchText(t.applyType);
-      return n === normTarget || n === normRaw;
-    });
-    if (matched) return matched;
-
-    
-    matched = app.types.find(function (t) {
-      const n = normalizeMatchText(t.applyType);
-      return n.indexOf(normTarget) !== -1 || normTarget.indexOf(n) !== -1;
-    });
-    if (matched) return matched;
-
-    
-    const scoped = preferredGroup
-      ? app.types.filter(function (t) { return t.liffGroup === preferredGroup; })
-      : app.types;
-    const list = scoped.length ? scoped : app.types;
-
-    if (rawKey === 'training' || /未申請|未審核|未備案/.test(rawType)) {
-      return list.find(function (t) { return /會外/.test(t.applyType) && /未申請|未審核|未備案|申請前/.test(t.applyType); }) ||
-        list.find(function (t) { return /未申請|未審核|未備案|申請前/.test(t.applyType); }) || null;
-    }
-
-    if (rawKey === 'training_ok' || /已審核|已核准|已通過|已備案/.test(rawType)) {
-      return list.find(function (t) { return /會外/.test(t.applyType) && /已審核|已核准|已通過|已備案/.test(t.applyType); }) ||
-        list.find(function (t) { return /已審核|已核准|已通過|已備案/.test(t.applyType); }) || null;
-    }
-
-    if (rawKey === 'vtc') {
-      return list.find(function (t) { return /職訓中心|自辦|委外|委辦/.test(t.applyType); }) || null;
-    }
-
-    if (rawKey === 'education' || rawKey === 'education_in') {
-      const wantIn = rawKey === 'education_in';
-      return list.find(function (t) {
-        return /正式學籍/.test(t.applyType) && (wantIn ? /已就讀|在學/.test(t.applyType) : /未就讀/.test(t.applyType));
-      }) || list.find(function (t) { return /正式學籍/.test(t.applyType); }) || null;
-    }
-
-    if (rawKey === 'credit') {
-      return list.find(function (t) { return /學分班|進修大專/.test(t.applyType); }) || null;
-    }
-
-    if (rawKey === 'exam') {
-      return list.find(function (t) { return /考試/.test(t.applyType); }) || null;
-    }
-
-    return null;
+    return matched || null;
   }
 
   function applyPreselectedParams() {
     const p = readInitialParams();
-    try { sessionStorage.removeItem(SESSION_PARAM_KEY); } catch (e) {}
+    try {
+      sessionStorage.removeItem(SESSION_PARAM_KEY);
+      localStorage.removeItem(SESSION_PARAM_KEY);
+    } catch (e) {}
     if (!app.types.length) return;
 
-    const preferredGroup = resolvePreferredGroup(p);
     let selectedTypeName = '';
 
-    
     if (p.type) {
-      const matched = findMatchedType(p.type, preferredGroup);
+      const matched = findMatchedTypeByParam(p.type);
       if (matched) {
-        selectGroup(matched.liffGroup || preferredGroup || app.activeGroup, true);
+        selectGroup(matched.liffGroup, true);
         const sel = document.getElementById('applyType');
         sel.value = matched.applyType;
         onApplyTypeChange();
         selectedTypeName = matched.applyType;
       } else {
-        selectGroup(preferredGroup || app.activeGroup, false);
+        selectGroup(app.activeGroup, false);
       }
-    } else if (preferredGroup) {
-      selectGroup(preferredGroup, false);
+    } else if (p.group) {
+      const targetGroup = GROUP_ALIASES[p.group.toLowerCase()] || p.group;
+      const foundGrp = VALID_GROUPS.find(function (g) { return g === targetGroup || g.indexOf(targetGroup) !== -1; });
+      selectGroup(foundGrp || app.activeGroup, false);
     } else {
       selectGroup(app.activeGroup, false);
     }
 
-    
     const prefilledSummary = [];
     if (p.name) {
       document.getElementById('applicantName').value = p.name.slice(0, 30);
+      document.getElementById('vtcLookupName').value = p.name.slice(0, 30);
       prefilledSummary.push('姓名：' + p.name.slice(0, 30));
     }
     if (p.note) {
       document.getElementById('caseNote').value = p.note.slice(0, 80);
       app.autoFilledNote = '';
-      prefilledSummary.push('課程／單位：' + p.note.slice(0, 80));
+      prefilledSummary.push('項目／單位：' + p.note.slice(0, 80));
     }
     if (p.ft === '1' || p.ft === 'true' || p.ft === '是') {
       app.selectedIsFullTime = true;
     }
 
-    
     let dateFilled = false;
-    const rawTypeLower = String(p.type || '').trim().toLowerCase();
-    const isApprovedType = rawTypeLower === 'training_ok' || /已審核|已核准|已通過|已備案/.test(selectedTypeName);
-    const isPreApplyType = rawTypeLower === 'training' || /未申請|未審核|未備案|申請前/.test(selectedTypeName);
-
     ['regStart', 'regEnd', 'startDate', 'endDate', 'subsidyStart', 'subsidyEnd'].forEach(function (k) {
       if (/^\d{4}-\d{2}-\d{2}$/.test(p[k] || '')) {
         if (setDateInputIfExists(k, p[k])) dateFilled = true;
       }
     });
 
-    const dynInputs = Array.from(document.querySelectorAll('.dyn-date-input'));
-    if (!dateFilled && dynInputs.length > 0 && (p.startDate || p.endDate)) {
-      dynInputs.forEach(function (inp) {
-        if (inp.value) return;
-        const lblEl = document.querySelector('label[for="' + inp.id + '"]');
-        const lblText = lblEl ? lblEl.textContent : '';
-        if (/結訓|完訓|結束/.test(lblText)) {
-          const valEnd = p.endDate || p.startDate;
-          if (/^\d{4}-\d{2}-\d{2}$/.test(valEnd || '')) {
-            inp.value = valEnd;
-            dateFilled = true;
-          }
-        } else if (/開訓|開始|起日/.test(lblText)) {
-          const valStart = p.startDate || p.endDate;
-          if (/^\d{4}-\d{2}-\d{2}$/.test(valStart || '')) {
-            inp.value = valStart;
-            dateFilled = true;
-          }
-        }
-      });
-
-      
-      if (!dateFilled && dynInputs.length === 1) {
-        const fallbackDate = isApprovedType
-          ? (p.endDate || p.startDate)
-          : (isPreApplyType ? (p.startDate || p.endDate) : (p.startDate || p.endDate));
-        if (/^\d{4}-\d{2}-\d{2}$/.test(fallbackDate || '')) {
-          dynInputs[0].value = fallbackDate;
-          dateFilled = true;
-        }
-      }
-    }
-
-    
     const curType = document.getElementById('applyType').value;
     if (!dateFilled && p.note && curType) {
       const candidates = getOfficialSchedulesForType(curType).filter(function (s) {
@@ -901,6 +866,12 @@
       }
     }
 
+    
+    if (dateFilled && p.name) {
+      app.urlAlreadyPrefilledDates = true;
+      document.getElementById('vtcSurveyPanel').classList.add('hidden');
+    }
+
     if (selectedTypeName) {
       const pill = document.getElementById('preselectBadge');
       pill.textContent = '已依連結自動選取：' + selectedTypeName;
@@ -908,26 +879,111 @@
     }
 
     if (prefilledSummary.length > 0 || dateFilled) {
-      const filledDatesText = [];
-      document.querySelectorAll('.dyn-date-input').forEach(function (inp) {
-        if (!inp.value) return;
-        const lblEl = document.querySelector('label[for="' + inp.id + '"]');
-        const lblClean = lblEl ? lblEl.textContent.replace(/[*（(].*$/g, '').trim() : '日期';
-        filledDatesText.push(lblClean + '：' + inp.value);
-      });
-      if (filledDatesText.length) prefilledSummary.push(filledDatesText.join('、'));
-
       const banner = document.getElementById('prefillBanner');
       banner.innerHTML =
         '<div style="font-weight:800;margin-bottom:2px;">已由承辦人員為您預填資料</div>' +
         (prefilledSummary.length ? ('<div>' + escapeHtml(prefilledSummary.join(' ｜ ')) + '</div>') : '') +
-        '<div style="font-size:12.5px;margin-top:3px;">請補填姓名並核對下方日期無誤後，點擊最下方「同意接收提醒並送出登記」即可。</div>';
+        '<div style="font-size:12.5px;margin-top:3px;">請核對下方日期無誤後，點擊最下方「同意接收提醒並送出登記」即可。</div>';
       banner.classList.remove('hidden');
     }
 
     if (dateFilled) {
       triggerSchedulePreview();
     }
+  }
+
+  
+  
+  
+  async function lookupVtcSurveyData() {
+    const nameEl = document.getElementById('vtcLookupName');
+    const last4El = document.getElementById('vtcLookupLast4');
+    const nameVal = (nameEl.value || document.getElementById('applicantName').value || '').trim();
+    const last4Val = (last4El.value || '').replace(/\D/g, '').trim();
+
+    if (!nameVal) { showToast('請輸入填寫問卷時的姓名'); nameEl.focus(); return; }
+    if (last4Val.length !== 4) { showToast('請輸入聯繫電話末 4 碼'); last4El.focus(); return; }
+
+    const btn = document.getElementById('vtcLookupBtn');
+    btn.disabled = true;
+    setLoading(true, '正在查詢您的職訓問卷資料...');
+
+    try {
+      const res = await callGasApi({
+        action: 'lookupVtcSurvey',
+        applicantName: nameVal,
+        phoneLast4: last4Val
+      });
+      setLoading(false);
+      btn.disabled = false;
+
+      if (!res.ok || !res.matches || !res.matches.length) {
+        showToast(res.message || '查無相符的問卷紀錄');
+        return;
+      }
+
+      app.vtcLookupMatches = res.matches;
+      const multiWrap = document.getElementById('vtcMultiWrap');
+      const multiSel = document.getElementById('vtcMultiSelect');
+
+      if (res.matches.length > 1) {
+        multiSel.innerHTML = '';
+        res.matches.forEach(function (m, idx) {
+          const opt = document.createElement('option');
+          opt.value = String(idx);
+          opt.textContent = m.note + (m.startDate ? ('｜開訓 ' + m.startDate) : '');
+          multiSel.appendChild(opt);
+        });
+        multiWrap.classList.remove('hidden');
+      } else {
+        multiWrap.classList.add('hidden');
+      }
+
+      applyVtcSurveyMatch(0);
+    } catch (err) {
+      setLoading(false);
+      btn.disabled = false;
+      showToast('查詢異常：' + (err.message || err));
+    }
+  }
+
+  function applyVtcSurveyMatch(idx) {
+    const m = (app.vtcLookupMatches || [])[idx];
+    if (!m) return;
+
+    
+    const curType = document.getElementById('applyType').value;
+    if (!curType || curType.indexOf('職訓中心') === -1) {
+      const vtcType = findMatchedTypeByParam('vtc');
+      if (vtcType) {
+        selectGroup(vtcType.liffGroup, true);
+        document.getElementById('applyType').value = vtcType.applyType;
+        onApplyTypeChange();
+      }
+    }
+
+    if (m.applicantName) document.getElementById('applicantName').value = m.applicantName;
+    if (m.note) {
+      document.getElementById('caseNote').value = m.note;
+      app.autoFilledNote = '';
+    }
+
+    let filledAny = false;
+    if (setDateInputIfExists('regStart', m.regStart)) filledAny = true;
+    if (setDateInputIfExists('regEnd', m.regEnd)) filledAny = true;
+    if (setDateInputIfExists('startDate', m.startDate)) filledAny = true;
+    if (setDateInputIfExists('endDate', m.endDate)) filledAny = true;
+
+    const banner = document.getElementById('prefillBanner');
+    banner.innerHTML =
+      '<div style="font-weight:800;margin-bottom:2px;">已從問卷自動帶入您的登記資料</div>' +
+      '<div>姓名：' + escapeHtml(m.applicantName) + ' ｜ 班別：' + escapeHtml(m.note) + '</div>' +
+      (m.batchText ? ('<div style="font-size:12.5px;margin-top:2px;">梯次：' + escapeHtml(m.batchText) + '</div>') : '') +
+      '<div style="font-size:12.5px;margin-top:3px;">請核對下方日期無誤後，點擊最下方「同意接收提醒並送出登記」即可完成。</div>';
+    banner.classList.remove('hidden');
+
+    showToast('已自動帶入班名與報名／訓練日期');
+    if (filledAny) triggerSchedulePreview();
   }
 
   window.addEventListener('DOMContentLoaded', initApp);
@@ -1051,6 +1107,7 @@
     app.selectedScheduleId = '';
     app.selectedIsFullTime = false;
     document.getElementById('preselectBadge').classList.add('hidden');
+    document.getElementById('vtcSurveyPanel').classList.add('hidden');
 
     const schPanel = document.getElementById('officialSchedulePanel');
     schPanel.classList.add('hidden');
@@ -1081,6 +1138,11 @@
     if (!found) return;
 
     updateNoteFieldLabel(found.liffGroup || app.activeGroup);
+
+    
+    if (typeVal.indexOf('職訓中心') !== -1 && !app.urlAlreadyPrefilledDates) {
+      document.getElementById('vtcSurveyPanel').classList.remove('hidden');
+    }
 
     if (found.noteExample) {
       document.getElementById('caseNote').placeholder = found.noteExample;
@@ -1372,8 +1434,10 @@
   }
 
   function resetForm() {
+    app.urlAlreadyPrefilledDates = false;
     document.getElementById('prefillBanner').classList.add('hidden');
     document.getElementById('caseNote').value = '';
+    document.getElementById('vtcMultiWrap').classList.add('hidden');
     app.autoFilledNote = '';
     selectGroup(app.activeGroup, false);
     document.getElementById('successCard').classList.add('hidden');
